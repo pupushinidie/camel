@@ -1,0 +1,340 @@
+/*
+ * 对局界面（沙丘赛驼）。外层 main 同时带 .app-shell，按钮、面板、聊天、规则、弹窗沿用 app-pixel.css 的像素皮肤；
+ * 这里只写牌桌自己的部分。字号只用 12 的整数倍；图片一律 pixelated；边框用多层硬 box-shadow。
+ */
+
+.app-shell {
+  --c-red: #d8443a;
+  --c-yellow: #f2c53d;
+  --c-blue: #3f80dc;
+  --c-green: #4fae52;
+  --c-purple: #9b5ad2;
+  --c-black: #2b2420;
+  --c-white: #efe8d8;
+  --c-gray: #8e8a85;
+}
+
+.camel-red { --cc: var(--c-red); --cc-ink: #fff; }
+.camel-yellow { --cc: var(--c-yellow); --cc-ink: #2a1c06; }
+.camel-blue { --cc: var(--c-blue); --cc-ink: #fff; }
+.camel-green { --cc: var(--c-green); --cc-ink: #fff; }
+.camel-purple { --cc: var(--c-purple); --cc-ink: #fff; }
+
+/* 像素边框：四边黑边、角上留空，内侧亮边 + 暗边 */
+.ct-pixel,
+.ct-panel, .ct-action, .ct-ticket-pile, .ct-finish-card, .ct-mini-ticket, .ct-die, .ct-segmented button, .ct-partner-list button,
+.ct-map-controls button, .ct-rank, .ct-pile-card, .ct-prompt, .ct-turn-who {
+  border: 0;
+  border-radius: 0;
+  box-shadow:
+    0 calc(var(--px) * -1) 0 0 var(--edge),
+    0 var(--px) 0 0 var(--edge),
+    calc(var(--px) * -1) 0 0 0 var(--edge),
+    var(--px) 0 0 0 var(--edge),
+    inset var(--px) var(--px) 0 0 var(--rim),
+    inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--shade);
+}
+
+/* ---------- 整体布局 ---------- */
+.app-shell.ct-game { width: 100%; max-width: none; margin: 0; padding: 0 16px 24px; }
+.ct-screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-areas:
+    "top top"
+    "board side"
+    "actions side";
+  grid-template-rows: auto minmax(420px, calc(100vh - 300px)) auto;
+  gap: 14px 16px;
+}
+.ct-topbar { grid-area: top; display: flex; align-items: center; gap: 18px; min-height: 64px; border-bottom: var(--px) solid #3d2e22; }
+.ct-topbar .brand { flex: 0 0 auto; }
+.ct-turn { display: flex; flex: 1 1 auto; align-items: center; gap: 14px; color: var(--muted); }
+.ct-turn-who { --rim: #6a4f37; display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; color: var(--text); background: var(--panel-2); }
+.ct-turn-who.mine { --rim: var(--gold); --shade: #7a5410; color: var(--gold); background: #3a2c10; animation: ct-blink 1.2s steps(2, jump-none) infinite; }
+.ct-turn-who i { display: block; width: 8px; height: 8px; }
+.ct-timer { color: var(--muted); font-weight: 400; }
+.ct-timer.low { color: var(--bad); }
+.ct-topbar-right { display: flex; align-items: center; gap: 12px; }
+.ct-topbar-right .game-rules { position: relative; margin: 0; }
+.ct-topbar-right .game-rules-panel { position: absolute; z-index: 50; right: 0; top: calc(100% + 6px); width: min(860px, calc(100vw - 32px)); max-height: 70vh; overflow: auto; }
+
+.ct-board-area { grid-area: board; position: relative; min-height: 0; }
+.ct-actions { grid-area: actions; display: flex; flex-direction: column; gap: 12px; }
+.ct-side { grid-area: side; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.ct-side .room-chat.light { margin: 0; }
+
+@keyframes ct-blink { 50% { filter: brightness(1.25); } }
+
+/* ---------- 2.5D 赛道 ---------- */
+.ct-frame {
+  --edge: #070504;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  /* 沙漠傍晚的天空：硬色阶，不做平滑渐变 */
+  background: linear-gradient(#1d1630 0 18%, #2c1f3c 18% 34%, #4a2a40 34% 48%, #7a3b3c 48% 60%, #b8603d 60% 72%, #d98a4a 72% 84%, #e7aa5c 84%);
+  box-shadow:
+    0 calc(var(--px) * -1) 0 0 var(--edge),
+    0 var(--px) 0 0 var(--edge),
+    calc(var(--px) * -1) 0 0 0 var(--edge),
+    var(--px) 0 0 0 var(--edge);
+}
+.ct-frame:active { cursor: grabbing; }
+.ct-frame.pointing { cursor: pointer; }
+.ct-panner { position: absolute; inset: 0; }
+.ct-scene { position: absolute; left: 50%; top: 50%; transform-style: preserve-3d; }
+.ct-ground {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  image-rendering: pixelated;
+  box-shadow: 0 0 0 calc(var(--unit) * 0.04) #6b4a2b;
+}
+.ct-cell {
+  position: absolute;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  box-shadow: inset 0 0 0 calc(var(--unit) * 0.025) rgba(70, 40, 18, 0.55);
+}
+.ct-cell-number {
+  position: absolute;
+  left: 7%;
+  top: 4%;
+  color: #4a2e16;
+  font-size: max(12px, round(down, calc(var(--unit) * 0.24), 12px));
+  line-height: 1;
+  text-shadow: calc(1em / 12) calc(1em / 12) 0 rgba(255, 240, 200, 0.7);
+}
+.ct-cell.selectable { cursor: pointer; }
+.ct-cell.selectable::after {
+  content: "";
+  position: absolute;
+  inset: 6%;
+  box-shadow: inset 0 0 0 calc(var(--unit) * 0.05) var(--gold);
+  animation: ct-blink 0.9s steps(2, jump-none) infinite;
+}
+.ct-cell.hover { filter: brightness(1.18); }
+.ct-cell.hover::after { box-shadow: inset 0 0 0 calc(var(--unit) * 0.07) #fff2b8; animation: none; }
+.ct-finish {
+  position: absolute;
+  background: repeating-conic-gradient(#f4f0e6 0 25%, #1c1714 0 50%) 0 0 / calc(var(--unit) * 0.14) calc(var(--unit) * 0.14);
+  image-rendering: pixelated;
+}
+.ct-spectator-pad {
+  position: absolute;
+  border: calc(var(--unit) * 0.04) solid;
+  background: rgba(98, 201, 122, 0.28);
+}
+.ct-spectator-pad.boo { background: rgba(242, 92, 92, 0.3); }
+
+.ct-pyramid-face {
+  position: absolute;
+  transform-origin: 50% 100%;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  backface-visibility: hidden;
+  image-rendering: pixelated;
+  background-repeat: repeat;
+  filter: brightness(var(--shade, 1));
+}
+.ct-pyramid-face.active { cursor: pointer; animation: ct-pyramid-glow 1.2s steps(2, jump-none) infinite; }
+@keyframes ct-pyramid-glow { 50% { filter: brightness(calc(var(--shade, 1) * 1.28)); } }
+
+/* 立牌：位置层（left/top 用百分比，缩放时不触发过渡）→ 立牌层 → 抬升层 → 贴图 */
+.ct-anchor { position: absolute; left: 0; top: 0; transform-style: preserve-3d; pointer-events: none; }
+.ct-camel-anchor { transition: left 340ms linear, top 340ms linear; }
+.ct-billboard { position: absolute; left: 0; top: 0; transform-style: preserve-3d; }
+.ct-lift {
+  position: absolute;
+  transform-origin: 50% 100%;
+  transform-style: preserve-3d;
+  transition: transform 300ms ease-out;
+}
+.ct-camel { width: 100%; height: 100%; background-repeat: no-repeat; image-rendering: pixelated; }
+.ct-camel.walking { animation: ct-hop 360ms ease-in-out infinite; }
+.ct-camel.animated { animation: ct-hop 360ms ease-in-out infinite, ct-walk 720ms steps(var(--frames), jump-none) infinite; }
+@keyframes ct-hop { 50% { transform: translateY(-14%); } }
+@keyframes ct-walk { from { background-position-x: 0%; } to { background-position-x: 100%; } }
+.ct-shadow { position: absolute; background: rgba(60, 30, 10, 0.35); border-radius: 50%; }
+
+.ct-spectator {
+  position: relative;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+.ct-spectator.cheering { animation: ct-cheer 260ms steps(2, jump-none) infinite; }
+@keyframes ct-cheer { 50% { transform: translateY(-10%); } }
+.ct-spectator-tag {
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  transform: translateX(-50%);
+  padding: 0 4px;
+  color: #120e0b;
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.ct-die-fx { position: absolute; left: calc(var(--die) / -2); top: calc(var(--die) * -1.8); animation: ct-die-pop 900ms steps(9, jump-none) both; }
+@keyframes ct-die-pop {
+  0% { transform: translateY(40px) scale(0.4); opacity: 0; }
+  30% { transform: translateY(-12px) scale(1.1); opacity: 1; }
+  45% { transform: translateY(0) scale(1); }
+  85% { opacity: 1; }
+  100% { transform: translateY(-8px); opacity: 0.9; }
+}
+
+/* 骰子 */
+.ct-die {
+  --rim: rgba(255, 255, 255, 0.55);
+  --shade: rgba(0, 0, 0, 0.35);
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: #fff;
+  font-size: 24px;
+  line-height: 1;
+  text-shadow: calc(1em / 12) calc(1em / 12) 0 rgba(0, 0, 0, 0.5);
+}
+.ct-die-fx .ct-die { width: var(--die); height: var(--die); font-size: max(24px, round(down, calc(var(--die) * 0.7), 12px)); }
+.die-red { background: var(--c-red); }
+.die-yellow { background: var(--c-yellow); color: #2a1c06; text-shadow: none; }
+.die-blue { background: var(--c-blue); }
+.die-green { background: var(--c-green); }
+.die-purple { background: var(--c-purple); }
+.die-gray { background: var(--c-gray); }
+.die-black { background: var(--c-black); }
+.die-white { background: var(--c-white); color: #2a1c06; text-shadow: none; }
+.ct-die.empty { --rim: #3d2e22; --shade: #0c0907; background: var(--bg); }
+
+/* 地图控件和提示 */
+.ct-map-controls { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; }
+.ct-map-controls button { --rim: #8a6a48; --shade: #150f0b; min-width: 32px; height: 32px; padding: 0 8px; color: var(--text); background: #3d2e22; cursor: pointer; }
+.ct-map-controls button:disabled { filter: grayscale(0.6) brightness(0.7); cursor: default; }
+.ct-map-hint { position: absolute; left: 12px; bottom: 12px; color: rgba(255, 240, 210, 0.75); text-shadow: calc(1em / 12) calc(1em / 12) 0 #000; pointer-events: none; }
+.ct-ranking { position: absolute; left: 12px; top: 12px; display: flex; gap: 6px; pointer-events: none; }
+.ct-rank { --rim: rgba(255, 255, 255, 0.45); --shade: rgba(0, 0, 0, 0.35); display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; color: var(--cc-ink); background: var(--cc); }
+.ct-rank b { font-weight: 400; opacity: 0.8; }
+
+/* ---------- 行动区 ---------- */
+.ct-prompt { --rim: #6a4f37; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 6px 12px; background: var(--panel); }
+.ct-actions.mine .ct-prompt { --rim: var(--gold); color: var(--gold); }
+.ct-prompt-buttons { display: flex; gap: 10px; }
+.ct-prompt-buttons .primary-button { min-height: 32px; margin: 0; padding: 0 16px; }
+.ct-feedback { margin: 0; color: var(--ok); }
+.ct-feedback.error { color: var(--bad); }
+.ct-action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.ct-action { --rim: #6a4f37; display: flex; flex-direction: column; gap: 10px; padding: 12px; background: var(--panel); }
+.ct-action h3, .ct-panel h3 { margin: 0; color: var(--gold); font-size: 12px; font-weight: 400; }
+.ct-action h3 small, .ct-panel h3 small { margin-left: 6px; color: var(--muted); font-size: 12px; }
+.app-shell .ct-roll { margin: 0; justify-content: center; gap: 12px; }
+.ct-dice-tray { display: flex; gap: 8px; }
+
+.ct-leg-tickets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.ct-ticket-pile {
+  --rim: rgba(255, 255, 255, 0.5);
+  --shade: rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0;
+  color: var(--cc-ink);
+  background: var(--cc);
+  cursor: pointer;
+}
+.ct-ticket-pile strong { font-size: 24px; font-weight: 400; line-height: 1.1; }
+.ct-ticket-pile span { font-size: 12px; opacity: 0.85; }
+.ct-ticket-pile:disabled { cursor: default; filter: grayscale(0.55) brightness(0.65); }
+.ct-ticket-pile.selected, .ct-finish-card.selected { --rim: #fff; outline: var(--px) solid var(--gold); outline-offset: calc(var(--px) * 2); }
+
+.ct-segmented { display: flex; gap: 8px; flex-wrap: wrap; }
+.ct-segmented button, .ct-partner-list button { --rim: #8a6a48; --shade: #150f0b; flex: 1 1 auto; padding: 6px 10px; color: var(--text); background: #3d2e22; cursor: pointer; }
+.ct-segmented button.selected, .ct-partner-list button.selected { --rim: var(--gold); --shade: #7a5410; color: #2a1c06; background: var(--gold); }
+.ct-segmented button:disabled, .ct-partner-list button:disabled { cursor: default; filter: grayscale(0.6) brightness(0.7); }
+.ct-partner-list { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.ct-finish-cards { display: flex; gap: 8px; }
+.ct-finish-card { --rim: rgba(255, 255, 255, 0.5); --shade: rgba(0, 0, 0, 0.4); width: 36px; height: 48px; background: var(--cc); cursor: pointer; }
+.ct-finish-card.used { opacity: 0.25; }
+.ct-finish-card:disabled { cursor: default; }
+
+/* ---------- 侧栏 ---------- */
+.ct-panel { --rim: #6a4f37; display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--panel); }
+.ct-muted { margin: 0; color: var(--muted); }
+.ct-player { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-top: var(--px) solid var(--panel-2); }
+.ct-player.active { background: #3a2c10; box-shadow: inset var(--px) 0 0 0 var(--gold); }
+.ct-player.offline { opacity: 0.6; }
+.ct-player-head { display: flex; align-items: center; gap: 8px; }
+.ct-player-head strong { flex: 1 1 auto; font-weight: 400; }
+.ct-player-head small { margin-left: 6px; color: var(--gold); font-size: 12px; }
+.ct-seat { display: block; width: 10px; height: 10px; }
+.ct-coins { color: var(--gold); }
+.ct-coins::before { content: "●"; margin-right: 4px; color: var(--gold); }
+.ct-player-items { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--muted); }
+.ct-mini-ticket { --rim: rgba(255, 255, 255, 0.5); --shade: rgba(0, 0, 0, 0.35); display: inline-grid; place-items: center; min-width: 20px; height: 24px; padding: 0 3px; color: var(--cc-ink); background: var(--cc); font-size: 12px; }
+.ct-spectator-chip { color: var(--ok); }
+.ct-spectator-chip.boo { color: var(--bad); }
+.ct-partner-chip { color: #8fd3ff; }
+.ct-pile { display: flex; align-items: center; gap: 10px; }
+.ct-pile-name { flex: 0 0 auto; width: 36px; color: var(--text); }
+.ct-pile-cards { display: flex; flex-wrap: wrap; gap: 4px; }
+.ct-pile-card { --rim: rgba(255, 255, 255, 0.4); --shade: rgba(0, 0, 0, 0.4); display: inline-grid; place-items: center; width: 24px; height: 32px; border-bottom: 4px solid; color: var(--cc-ink); background: var(--cc); font-size: 12px; }
+.ct-pile-card.hidden { color: var(--text); background: repeating-conic-gradient(#5a4430 0 25%, #4a3726 0 50%) 0 0 / 4px 4px; }
+.ct-log ul { display: flex; flex-direction: column; gap: 4px; max-height: 220px; margin: 0; padding: 0; overflow: auto; color: var(--text); list-style: none; }
+.ct-log li:first-child { color: var(--gold); }
+
+/* ---------- 结算弹窗 ---------- */
+.app-shell .ct-result { width: min(640px, 100%); max-height: calc(100vh - 48px); overflow: auto; }
+.ct-result-ranking { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; }
+.ct-payouts { width: 100%; border-collapse: collapse; }
+.ct-payouts th { color: var(--muted); font-weight: 400; text-align: left; }
+.ct-payouts :is(th, td) { padding: 6px 6px 6px 0; border-bottom: var(--px) solid var(--panel-2); vertical-align: middle; }
+.ct-payout-bets { display: flex; flex-wrap: wrap; gap: 4px; }
+.ct-payouts .gain { color: var(--ok); }
+.ct-payouts .loss { color: var(--bad); }
+.ct-final details { margin: 6px 0 12px; color: var(--muted); }
+.ct-final summary { cursor: pointer; }
+.ct-reveal h3 { margin: 12px 0 6px; color: var(--gold); font-size: 12px; font-weight: 400; }
+.ct-reveal ol { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.ct-reveal li { display: flex; align-items: center; gap: 8px; animation: ct-reveal 400ms steps(4, jump-none) both; }
+.ct-reveal li.correct b { color: var(--ok); }
+.ct-reveal li.wrong b { color: var(--bad); }
+@keyframes ct-reveal { from { opacity: 0; transform: translateX(-8px); } }
+.ct-standings { display: flex; flex-direction: column; gap: 6px; margin: 16px 0 0; padding: 12px 0 0; border-top: var(--px) solid var(--panel-2); list-style: none; }
+.ct-standings li { display: flex; justify-content: space-between; }
+.ct-standings li.winner { color: var(--gold); }
+.ct-rematch { margin-top: 16px; color: var(--muted); }
+
+/* ---------- 首页 / 等候房间：人数 3–8 ---------- */
+.app-shell .capacity-options.capacity-many { grid-template-columns: repeat(6, 1fr); }
+.app-shell .capacity-many .capacity-option { height: 48px; }
+
+/* ---------- 窄屏 ---------- */
+@media (max-width: 1000px) {
+  .ct-screen {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "top" "board" "actions" "side";
+    grid-template-rows: auto minmax(360px, 62vh) auto auto;
+  }
+  .ct-turn { flex-wrap: wrap; gap: 6px; }
+}
+@media (max-width: 560px) {
+  .app-shell.ct-game { padding: 0 12px 16px; }
+  .ct-topbar { flex-wrap: wrap; gap: 8px; padding: 8px 0; }
+  .ct-topbar .brand-name span { display: none; }
+  .ct-map-hint { display: none; }
+  .ct-ranking { flex-wrap: wrap; right: 12px; }
+  .app-shell .capacity-options.capacity-many { grid-template-columns: repeat(3, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ct-camel, .ct-spectator, .ct-die-fx, .ct-turn-who.mine, .ct-cell.selectable::after, .ct-pyramid-face.active, .ct-reveal li { animation: none !important; }
+  .ct-camel-anchor, .ct-lift { transition: none; }
+}
