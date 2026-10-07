@@ -1,5 +1,5 @@
 {
-  "_说明": "他在画廊里定的选择，路径相对 art/out/。终点拱门第三轮按他的意见（黑白太生硬）重画，暂用我推荐的 arch-check-c1。",
+  "_说明": "他在画廊里定的选择（第一、二、三轮都已确认），路径相对 art/out/。",
   "camel": "style/camelB-red",
   "tile": "style/ground/tile2-c1.png",
   "sand": "style/ground/sand-c2.png",
@@ -18,7 +18,7 @@
   "flag": "r2/props/flag-c1.png",
   "brazier": "r2/props/brazier-c1.png",
   "obelisk": "r2/props/obelisk-c1.png",
-  "arch": "r3/arch-check-c1.png",
+  "arch": "r3/arch-stripe-c2.png",
   "coin": "r2/props/coin-c1.png",
   "pyramid-ticket": "r2/props/pyramid-ticket-c1.png",
   "ticket": "r2/props/ticket-c3.png",

@@ -10,6 +10,8 @@ import { DIRECTIONS, type Direction } from "./trackGeometry.js";
  * - walk.png：8 行（方向）× walkFrames 列。
  */
 const ROOT = `${import.meta.env.BASE_URL}art/`;
+/** 拼在每个美术地址后面：每次构建都不同，部署后浏览器会重新取图，不会还显示缓存里的旧图。 */
+const V = `?v=${__ART_VERSION__}`;
 
 export interface CamelSprite {
   /** 单格的像素宽高。 */
@@ -43,9 +45,9 @@ export function camelSprite(camel: CamelId): CamelSprite {
   return {
     width: entry.width,
     height: entry.height,
-    still: `${ROOT}camels/${folder}/still.png`,
+    still: `${ROOT}camels/${folder}/still.png${V}`,
     ...(entry.walkFrames
-      ? { walk: { url: `${ROOT}camels/${folder}/walk.png`, frames: entry.walkFrames, directions: (entry.walkDirections ?? []) as Direction[] } }
+      ? { walk: { url: `${ROOT}camels/${folder}/walk.png${V}`, frames: entry.walkFrames, directions: (entry.walkDirections ?? []) as Direction[] } }
       : {}),
     ...(placeholder ? { filter: placeholder.filter } : {}),
   };
@@ -56,17 +58,17 @@ export function directionIndex(direction: Direction): number {
 }
 
 export const groundArt = {
-  sand: `${ROOT}ground/sand.png`,
-  tile: `${ROOT}ground/tile.png`,
-  brick: `${ROOT}ground/brick.png`,
-  strata: `${ROOT}ground/strata.png`,
-  backdrop: `${ROOT}ground/backdrop.png`,
-  arch: `${ROOT}decor/arch.png`,
+  sand: `${ROOT}ground/sand.png${V}`,
+  tile: `${ROOT}ground/tile.png${V}`,
+  brick: `${ROOT}ground/brick.png${V}`,
+  strata: `${ROOT}ground/strata.png${V}`,
+  backdrop: `${ROOT}ground/backdrop.png${V}`,
+  arch: `${ROOT}decor/arch.png${V}`,
 };
 
 export const spectatorArt: Record<SpectatorSide, string> = {
-  cheer: `${ROOT}spectators/cheer.png`,
-  boo: `${ROOT}spectators/boo.png`,
+  cheer: `${ROOT}spectators/cheer.png${V}`,
+  boo: `${ROOT}spectators/boo.png${V}`,
 };
 
 /** 沙盘上的装饰立牌。 */
@@ -74,18 +76,18 @@ export const DECOR_KINDS = ["palm", "shrub", "rocks", "tent", "stand", "flag", "
 export type DecorKind = (typeof DECOR_KINDS)[number];
 
 export function decorArt(kind: DecorKind): string {
-  return `${ROOT}decor/${kind}.png`;
+  return `${ROOT}decor/${kind}.png${V}`;
 }
 
 export const iconArt = {
-  coin: `${ROOT}ui/coin.png`,
-  pyramidTicket: `${ROOT}ui/pyramid-ticket.png`,
-  cardBack: `${ROOT}ui/card-back.png`,
-  partner: `${ROOT}ui/partner.png`,
-  hero: `${ROOT}ui/hero.png`,
+  coin: `${ROOT}ui/coin.png${V}`,
+  pyramidTicket: `${ROOT}ui/pyramid-ticket.png${V}`,
+  cardBack: `${ROOT}ui/card-back.png${V}`,
+  partner: `${ROOT}ui/partner.png${V}`,
+  hero: `${ROOT}ui/hero.png${V}`,
 };
 
 /** 赛段下注票：票面上的骆驼剪影是队色（art/props.py 换色）。 */
 export function ticketArt(camel: RacerId): string {
-  return `${ROOT}ui/ticket-${camel}.png`;
+  return `${ROOT}ui/ticket-${camel}.png${V}`;
 }
