@@ -1,0 +1,38 @@
+{
+  "palm": {
+    "width": 54,
+    "height": 87
+  },
+  "shrub": {
+    "width": 33,
+    "height": 22
+  },
+  "rocks": {
+    "width": 47,
+    "height": 34
+  },
+  "tent": {
+    "width": 83,
+    "height": 45
+  },
+  "stand": {
+    "width": 110,
+    "height": 53
+  },
+  "flag": {
+    "width": 25,
+    "height": 76
+  },
+  "brazier": {
+    "width": 24,
+    "height": 36
+  },
+  "obelisk": {
+    "width": 29,
+    "height": 92
+  },
+  "arch": {
+    "width": 106,
+    "height": 82
+  }
+}

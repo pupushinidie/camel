@@ -22,7 +22,7 @@
 
 /* 像素边框：四边黑边、角上留空，内侧亮边 + 暗边 */
 .ct-pixel,
-.ct-panel, .ct-action, .ct-ticket-pile, .ct-finish-card, .ct-mini-ticket, .ct-die, .ct-segmented button, .ct-partner-list button,
+.ct-panel, .ct-action, .ct-finish-card, .ct-mini-ticket, .ct-die, .ct-segmented button, .ct-partner-list button,
 .ct-map-controls button, .ct-rank, .ct-pile-card, .ct-prompt, .ct-turn-who {
   border: 0;
   border-radius: 0;
@@ -76,8 +76,8 @@
   cursor: grab;
   touch-action: none;
   user-select: none;
-  /* 沙漠傍晚的天空：硬色阶，不做平滑渐变 */
-  background: linear-gradient(#1d1630 0 18%, #2c1f3c 18% 34%, #4a2a40 34% 48%, #7a3b3c 48% 60%, #b8603d 60% 72%, #d98a4a 72% 84%, #e7aa5c 84%);
+  /* 远景盖不到（或俯视时淡出）的地方：从远景最上面一行的天色过渡到最下面一行的沙丘暗色 */
+  background: linear-gradient(#622c5d, #59020e 60%);
   box-shadow:
     0 calc(var(--px) * -1) 0 0 var(--edge),
     0 var(--px) 0 0 var(--edge),
@@ -86,40 +86,57 @@
 }
 .ct-frame:active { cursor: grabbing; }
 .ct-frame.pointing { cursor: pointer; }
+.ct-backdrop { position: absolute; inset: 0; background-repeat: repeat-x; image-rendering: pixelated; pointer-events: none; filter: saturate(0.82) brightness(0.9); }
+/* 远处蒙一层暖色薄雾，沙盘才跳得出来 */
+.ct-backdrop::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(98, 44, 93, 0.12), rgba(255, 196, 150, 0.18) 45%, rgba(60, 16, 30, 0.3)); }
 .ct-panner { position: absolute; inset: 0; }
 .ct-scene { position: absolute; left: 50%; top: 50%; transform-style: preserve-3d; }
-.ct-ground {
+
+/* 沙盘：侧面岩层按朝向变暗，底边一道深色收边 */
+.ct-plinth {
+  position: absolute;
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  backface-visibility: hidden;
+  image-rendering: pixelated;
+  filter: brightness(var(--shade, 1));
+  box-shadow: inset 0 calc(var(--unit) * -0.07) 0 rgba(40, 16, 6, 0.55), inset 0 calc(var(--unit) * 0.03) 0 rgba(255, 220, 160, 0.25);
+}
+.ct-ground { position: absolute; inset: 0; background-repeat: repeat; image-rendering: pixelated; }
+.ct-ground-light {
   position: absolute;
   inset: 0;
-  background-repeat: repeat;
-  image-rendering: pixelated;
-  box-shadow: 0 0 0 calc(var(--unit) * 0.04) #6b4a2b;
+  pointer-events: none;
+  /* 西北来的暖光，东南角压暗一点；四边一圈深色收边 */
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 230, 170, 0.3), transparent 58%),
+    linear-gradient(135deg, rgba(255, 210, 140, 0.08), rgba(110, 50, 20, 0.22));
+  box-shadow: inset 0 0 0 calc(var(--unit) * 0.05) rgba(120, 70, 30, 0.45);
 }
-.ct-cell {
-  position: absolute;
-  background-size: 100% 100%;
-  image-rendering: pixelated;
-  box-shadow: inset 0 0 0 calc(var(--unit) * 0.025) rgba(70, 40, 18, 0.55);
-}
+
+/* 赛道：石板抬高一点，地上留一块影子 */
+.ct-tile-shadow { position: absolute; background: rgba(70, 32, 10, 0.4); transform: translateZ(0.5px); }
+.ct-tile { position: absolute; background-size: 100% 100%; image-rendering: pixelated; }
 .ct-cell-number {
   position: absolute;
-  left: 7%;
-  top: 4%;
-  color: #4a2e16;
+  left: 8%;
+  top: 5%;
+  color: rgba(74, 40, 16, 0.85);
   font-size: max(12px, round(down, calc(var(--unit) * 0.24), 12px));
   line-height: 1;
-  text-shadow: calc(1em / 12) calc(1em / 12) 0 rgba(255, 240, 200, 0.7);
+  /* 刻进石头里：右下一道亮边 */
+  text-shadow: calc(1em / 12) calc(1em / 12) 0 rgba(255, 236, 196, 0.75);
 }
-.ct-cell.selectable { cursor: pointer; }
-.ct-cell.selectable::after {
+.ct-tile.selectable { cursor: pointer; }
+.ct-tile.selectable::after {
   content: "";
   position: absolute;
   inset: 6%;
   box-shadow: inset 0 0 0 calc(var(--unit) * 0.05) var(--gold);
   animation: ct-blink 0.9s steps(2, jump-none) infinite;
 }
-.ct-cell.hover { filter: brightness(1.18); }
-.ct-cell.hover::after { box-shadow: inset 0 0 0 calc(var(--unit) * 0.07) #fff2b8; animation: none; }
+.ct-tile.hover { filter: brightness(1.18); }
+.ct-tile.hover::after { box-shadow: inset 0 0 0 calc(var(--unit) * 0.07) #fff2b8; animation: none; }
 .ct-finish {
   position: absolute;
   background: repeating-conic-gradient(#f4f0e6 0 25%, #1c1714 0 50%) 0 0 / calc(var(--unit) * 0.14) calc(var(--unit) * 0.14);
@@ -132,17 +149,38 @@
 }
 .ct-spectator-pad.boo { background: rgba(242, 92, 92, 0.3); }
 
+/* 金字塔：影子、底座、塔身（金顶在塔身贴图的第一层渐变里） */
+.ct-pyramid-shadow { position: absolute; background: rgba(60, 24, 6, 0.34); }
+.ct-platform-top { position: absolute; image-rendering: pixelated; filter: brightness(0.84); box-shadow: inset 0 0 0 calc(var(--unit) * 0.035) rgba(70, 34, 12, 0.45); }
+.ct-platform-side { position: absolute; image-rendering: pixelated; backface-visibility: hidden; filter: brightness(var(--shade, 1)); }
 .ct-pyramid-face {
   position: absolute;
   transform-origin: 50% 100%;
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
   backface-visibility: hidden;
   image-rendering: pixelated;
-  background-repeat: repeat;
+  background-repeat: no-repeat, repeat;
   filter: brightness(var(--shade, 1));
 }
 .ct-pyramid-face.active { cursor: pointer; animation: ct-pyramid-glow 1.2s steps(2, jump-none) infinite; }
 @keyframes ct-pyramid-glow { 50% { filter: brightness(calc(var(--shade, 1) * 1.28)); } }
+.ct-pyramid-door {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 15%;
+  height: 19%;
+  transform: translateX(-50%);
+  background: #1a0d06;
+  /* 门楣：上面一道浅色石条，两边一道深色门框 */
+  box-shadow: 0 calc(var(--unit) * -0.05) 0 0 #d9b77a, inset calc(var(--unit) * 0.03) 0 0 #3b1e0d, inset calc(var(--unit) * -0.03) 0 0 #3b1e0d;
+}
+
+/* 终点拱门、装饰立牌、影子 */
+.ct-arch { position: absolute; background-size: 100% 100%; image-rendering: pixelated; pointer-events: none; }
+.ct-decor { position: absolute; background-size: 100% 100%; background-repeat: no-repeat; image-rendering: pixelated; transition: opacity 200ms; }
+.ct-decor.faded { opacity: 0.35; }
+.ct-shadow { position: absolute; border-radius: 50%; background: rgba(60, 26, 8, 0.34); pointer-events: none; }
 
 /* 立牌：位置层（left/top 用百分比，缩放时不触发过渡）→ 立牌层 → 抬升层 → 贴图 */
 .ct-anchor { position: absolute; left: 0; top: 0; transform-style: preserve-3d; pointer-events: none; }
@@ -157,12 +195,11 @@
 .ct-camel { width: 100%; height: 100%; background-repeat: no-repeat; image-rendering: pixelated; }
 .ct-camel.walking { animation: ct-hop 360ms ease-in-out infinite; }
 .ct-camel.animated { animation: ct-hop 360ms ease-in-out infinite, ct-walk 720ms steps(var(--frames), jump-none) infinite; }
-@keyframes ct-hop { 50% { transform: translateY(-14%); } }
+@keyframes ct-hop { 50% { transform: translateY(-12%); } }
 @keyframes ct-walk { from { background-position-x: 0%; } to { background-position-x: 100%; } }
-.ct-shadow { position: absolute; background: rgba(60, 30, 10, 0.35); border-radius: 50%; }
 
 .ct-spectator {
-  position: relative;
+  position: absolute;
   background-size: 100% 100%;
   background-repeat: no-repeat;
   image-rendering: pixelated;
@@ -181,6 +218,23 @@
   white-space: nowrap;
 }
 
+/* 骆驼落地扬起的沙：几粒像素往两边、往上散开 */
+.ct-dust { position: absolute; pointer-events: none; }
+.ct-dust i {
+  position: absolute;
+  bottom: 0;
+  left: calc(var(--i) * 13%);
+  width: calc(var(--unit) * 0.08);
+  height: calc(var(--unit) * 0.08);
+  background: #f0d49a;
+  animation: ct-dust 520ms steps(6, jump-none) both;
+  animation-delay: calc(var(--i) * 12ms);
+}
+@keyframes ct-dust {
+  from { transform: translate(0, 0); opacity: 0.9; }
+  to { transform: translate(calc((var(--i) - 3) * 60%), -260%); opacity: 0; }
+}
+
 .ct-die-fx { position: absolute; left: calc(var(--die) / -2); top: calc(var(--die) * -1.8); animation: ct-die-pop 900ms steps(9, jump-none) both; }
 @keyframes ct-die-pop {
   0% { transform: translateY(40px) scale(0.4); opacity: 0; }
@@ -189,6 +243,18 @@
   85% { opacity: 1; }
   100% { transform: translateY(-8px); opacity: 0.9; }
 }
+
+/* 漂浮的沙粒和暗角（画在场景上面，不接收点击） */
+.ct-motes { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.ct-motes i { position: absolute; left: -2%; background: rgba(255, 226, 168, 0.6); animation-name: ct-mote; animation-timing-function: linear; animation-iteration-count: infinite; }
+@keyframes ct-mote {
+  0% { left: -2%; margin-top: 0; }
+  25% { margin-top: -10px; }
+  50% { margin-top: 6px; }
+  75% { margin-top: -4px; }
+  100% { left: 102%; margin-top: 0; }
+}
+.ct-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 55%, transparent 58%, rgba(30, 8, 18, 0.42) 100%); }
 
 /* 骰子 */
 .ct-die {
@@ -226,33 +292,56 @@
 /* ---------- 行动区 ---------- */
 .ct-prompt { --rim: #6a4f37; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 6px 12px; background: var(--panel); }
 .ct-actions.mine .ct-prompt { --rim: var(--gold); color: var(--gold); }
-.ct-prompt-buttons { display: flex; gap: 10px; }
+.ct-prompt-buttons { display: flex; flex: 0 0 auto; gap: 10px; }
+.app-shell .ct-prompt-buttons .quiet-button { white-space: nowrap; }
 .ct-prompt-buttons .primary-button { min-height: 32px; margin: 0; padding: 0 16px; }
 .ct-feedback { margin: 0; color: var(--ok); }
 .ct-feedback.error { color: var(--bad); }
 .ct-action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
 .ct-action { --rim: #6a4f37; display: flex; flex-direction: column; gap: 10px; padding: 12px; background: var(--panel); }
-.ct-action h3, .ct-panel h3 { margin: 0; color: var(--gold); font-size: 12px; font-weight: 400; }
+.ct-action h3, .ct-panel h3 { display: flex; flex-wrap: wrap; align-items: center; margin: 0; color: var(--gold); font-size: 12px; font-weight: 400; }
 .ct-action h3 small, .ct-panel h3 small { margin-left: 6px; color: var(--muted); font-size: 12px; }
 .app-shell .ct-roll { margin: 0; justify-content: center; gap: 12px; }
 .ct-dice-tray { display: flex; gap: 8px; }
 
 .ct-leg-tickets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+/* 下注票堆：票面插画按 1 倍显示（36×53），票值压在下半截；剩几张就在下面叠几层边 */
 .ct-ticket-pile {
-  --rim: rgba(255, 255, 255, 0.5);
-  --shade: rgba(0, 0, 0, 0.4);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 0;
-  color: var(--cc-ink);
-  background: var(--cc);
+  position: relative;
+  justify-self: center;
+  width: 36px;
+  height: 53px;
+  padding: 0;
+  border: 0;
+  background: var(--ticket) 0 0 / 100% 100% no-repeat;
+  image-rendering: pixelated;
   cursor: pointer;
+  color: #3a1d0c;
 }
-.ct-ticket-pile strong { font-size: 24px; font-weight: 400; line-height: 1.1; }
-.ct-ticket-pile span { font-size: 12px; opacity: 0.85; }
-.ct-ticket-pile:disabled { cursor: default; filter: grayscale(0.55) brightness(0.65); }
+.ct-ticket-pile.camel-red { --ticket: var(--img-ticket-red); }
+.ct-ticket-pile.camel-yellow { --ticket: var(--img-ticket-yellow); }
+.ct-ticket-pile.camel-blue { --ticket: var(--img-ticket-blue); }
+.ct-ticket-pile.camel-green { --ticket: var(--img-ticket-green); }
+.ct-ticket-pile.camel-purple { --ticket: var(--img-ticket-purple); }
+.ct-ticket-pile.left-2 { box-shadow: 0 3px 0 -1px #c9a877, 0 3px 0 0 #6b4a2b; }
+.ct-ticket-pile.left-3 { box-shadow: 0 3px 0 -1px #c9a877, 0 3px 0 0 #6b4a2b, 0 6px 0 -1px #b8956a, 0 6px 0 0 #6b4a2b; }
+.ct-ticket-pile.left-4 { box-shadow: 0 3px 0 -1px #c9a877, 0 3px 0 0 #6b4a2b, 0 6px 0 -1px #b8956a, 0 6px 0 0 #6b4a2b, 0 9px 0 -1px #a7835e, 0 9px 0 0 #6b4a2b; }
+.ct-ticket-pile strong {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 5px;
+  color: var(--cc);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+  /* 像素加粗：向右、向下各描一像素 */
+  text-shadow: calc(1em / 12) 0 0 currentColor, 0 calc(1em / 12) 0 #3a1d0c;
+}
+.ct-ticket-pile.camel-yellow strong { color: #b07d0e; }
+.ct-ticket-pile span { position: absolute; left: 0; right: 0; bottom: -22px; color: var(--muted); font-size: 12px; }
+.ct-ticket-pile:disabled { cursor: default; filter: grayscale(0.7) brightness(0.6); }
+.ct-leg-tickets { padding-bottom: 22px; }
 .ct-ticket-pile.selected, .ct-finish-card.selected { --rim: #fff; outline: var(--px) solid var(--gold); outline-offset: calc(var(--px) * 2); }
 
 .ct-segmented { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -262,7 +351,7 @@
 .ct-partner-list { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .ct-finish-cards { display: flex; gap: 8px; }
-.ct-finish-card { --rim: rgba(255, 255, 255, 0.5); --shade: rgba(0, 0, 0, 0.4); width: 36px; height: 48px; background: var(--cc); cursor: pointer; }
+.ct-finish-card { --rim: var(--cc); --shade: var(--cc); width: 48px; height: 64px; padding: 0; background: var(--img-card-back) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; cursor: pointer; }
 .ct-finish-card.used { opacity: 0.25; }
 .ct-finish-card:disabled { cursor: default; }
 
@@ -277,7 +366,15 @@
 .ct-player-head small { margin-left: 6px; color: var(--gold); font-size: 12px; }
 .ct-seat { display: block; width: 10px; height: 10px; }
 .ct-coins { color: var(--gold); }
-.ct-coins::before { content: "●"; margin-right: 4px; color: var(--gold); }
+.ct-coins { display: inline-flex; align-items: center; gap: 4px; }
+/* 界面小图都按 1 倍或整数倍显示，像素才清楚 */
+.ct-icon-coin, .ct-icon-pyramid, .ct-icon-partner { display: inline-block; flex: 0 0 auto; vertical-align: middle; background: 0 0 / 100% 100% no-repeat; image-rendering: pixelated; }
+.ct-icon-coin { width: 15px; height: 15px; background-image: var(--img-coin); }
+.ct-player-head .ct-icon-coin, .ct-standings .ct-icon-coin { width: 30px; height: 30px; }
+.ct-player-head .ct-coins { font-size: 24px; line-height: 1; }
+.ct-icon-pyramid { width: 22px; height: 20px; margin-right: 4px; background-image: var(--img-pyramid); }
+.ct-icon-partner { width: 24px; height: 18px; margin-right: 4px; background-image: var(--img-partner); }
+.ct-pyramid-count { display: inline-flex; align-items: center; color: var(--gold); }
 .ct-player-items { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--muted); }
 .ct-mini-ticket { --rim: rgba(255, 255, 255, 0.5); --shade: rgba(0, 0, 0, 0.35); display: inline-grid; place-items: center; min-width: 20px; height: 24px; padding: 0 3px; color: var(--cc-ink); background: var(--cc); font-size: 12px; }
 .ct-spectator-chip { color: var(--ok); }
@@ -287,7 +384,7 @@
 .ct-pile-name { flex: 0 0 auto; width: 36px; color: var(--text); }
 .ct-pile-cards { display: flex; flex-wrap: wrap; gap: 4px; }
 .ct-pile-card { --rim: rgba(255, 255, 255, 0.4); --shade: rgba(0, 0, 0, 0.4); display: inline-grid; place-items: center; width: 24px; height: 32px; border-bottom: 4px solid; color: var(--cc-ink); background: var(--cc); font-size: 12px; }
-.ct-pile-card.hidden { color: var(--text); background: repeating-conic-gradient(#5a4430 0 25%, #4a3726 0 50%) 0 0 / 4px 4px; }
+.ct-pile-card.hidden { color: var(--text); background: var(--img-card-back) 0 0 / 100% 100% no-repeat; image-rendering: pixelated; text-shadow: calc(1em / 12) calc(1em / 12) 0 #000; }
 .ct-log ul { display: flex; flex-direction: column; gap: 4px; max-height: 220px; margin: 0; padding: 0; overflow: auto; color: var(--text); list-style: none; }
 .ct-log li:first-child { color: var(--gold); }
 
@@ -315,6 +412,22 @@
 
 /* ---------- 首页 / 等候房间：人数 3–8 ---------- */
 .app-shell .capacity-options.capacity-many { grid-template-columns: repeat(6, 1fr); }
+/* 首页插画（400×224，按 1 倍放在介绍文字下面，窄屏缩到 100% 宽） */
+.app-shell .ct-hero {
+  display: block;
+  width: 400px;
+  max-width: 100%;
+  margin-top: 24px;
+  image-rendering: pixelated;
+  box-shadow:
+    0 calc(var(--px) * -1) 0 0 var(--edge),
+    0 var(--px) 0 0 var(--edge),
+    calc(var(--px) * -1) 0 0 0 var(--edge),
+    var(--px) 0 0 0 var(--edge),
+    0 0 0 calc(var(--px) * 3) var(--gold-2);
+}
+.app-shell .camel-showcase .ct-showcase-camel { width: 66px; height: 60px; background-size: 800% 100%; background-repeat: no-repeat; image-rendering: pixelated; }
+.app-shell .camel-showcase { flex-wrap: wrap; gap: 4px; margin-top: 20px; }
 .app-shell .capacity-many .capacity-option { height: 48px; }
 
 /* ---------- 窄屏 ---------- */
@@ -335,6 +448,12 @@
   .app-shell .capacity-options.capacity-many { grid-template-columns: repeat(3, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ct-camel, .ct-spectator, .ct-die-fx, .ct-turn-who.mine, .ct-cell.selectable::after, .ct-pyramid-face.active, .ct-reveal li { animation: none !important; }
+  .ct-camel, .ct-spectator, .ct-die-fx, .ct-turn-who.mine, .ct-tile.selectable::after, .ct-pyramid-face.active, .ct-reveal li, .ct-dust i, .ct-motes i { animation: none !important; }
+  .ct-motes { display: none; }
   .ct-camel-anchor, .ct-lift { transition: none; }
 }
+
+/* 「再来一局」那一行：离开按钮保持原宽，不被挤成竖排 */
+.app-shell .ct-rematch .gm-panel-actions { align-items: center; }
+.app-shell .ct-rematch .quiet-button { flex: 0 0 auto; white-space: nowrap; }
+.app-shell .ct-rematch .primary-button { flex: 1 1 auto; margin: 0; }

@@ -1,0 +1,107 @@
+{
+  "red": {
+    "width": 66,
+    "height": 62,
+    "walkFrames": 8,
+    "walkDirections": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ]
+  },
+  "yellow": {
+    "width": 66,
+    "height": 62,
+    "walkFrames": 8,
+    "walkDirections": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ]
+  },
+  "blue": {
+    "width": 66,
+    "height": 62,
+    "walkFrames": 8,
+    "walkDirections": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ]
+  },
+  "green": {
+    "width": 66,
+    "height": 62,
+    "walkFrames": 8,
+    "walkDirections": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ]
+  },
+  "purple": {
+    "width": 66,
+    "height": 62,
+    "walkFrames": 8,
+    "walkDirections": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ]
+  },
+  "black": {
+    "width": 66,
+    "height": 66,
+    "walkFrames": 8,
+    "walkDirections": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ]
+  },
+  "white": {
+    "width": 68,
+    "height": 65,
+    "walkFrames": 8,
+    "walkDirections": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ]
+  }
+}

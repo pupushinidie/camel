@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CamelId, GameState, Spectator } from "@camel/game";
-import type { DieFx } from "./Track3D.js";
+import type { DieFx, DustFx } from "./Track3D.js";
 import { stepPath } from "./trackGeometry.js";
 
 /** 每走一格的时长（毫秒），和 CSS 里 .ct-anchor 的过渡、跳跃动画一致。 */
@@ -14,6 +14,8 @@ export interface Playback {
   readonly walking: ReadonlySet<CamelId>;
   readonly cheeringAt?: number;
   readonly dieFx?: DieFx;
+  /** 刚落地的那一格扬起的沙。 */
+  readonly dust?: DustFx;
   /** 已经播放完的版本；赛段结算、终局弹窗等动画播完再出。 */
   readonly settledVersion: number;
 }
@@ -81,7 +83,8 @@ export function usePlayback(game: GameState): Playback {
       const path = stepPath(event.from, event.to, event.dir);
       path.forEach((pos, index) => {
         stacks = moveVisual(stacks, event.camels, pos, event.under && index === path.length - 1);
-        frames.push({ at: time, state: { ...base, stacks, walking: new Set(event.camels), dieFx, ...(cheeringAt !== undefined ? { cheeringAt } : {}) } });
+        const dust: DustFx = { key: game.version * 100 + frames.length, pos };
+        frames.push({ at: time, state: { ...base, stacks, walking: new Set(event.camels), dieFx, dust, ...(cheeringAt !== undefined ? { cheeringAt } : {}) } });
         time += STEP_MS;
       });
     }

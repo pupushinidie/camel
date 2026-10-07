@@ -13,7 +13,7 @@ describe("赛道几何", () => {
     expect(seen.size).toBe(16);
     expect(cellGrid(1)).toEqual({ col: 0, row: 0 });
     expect(cellGrid(9)).toEqual({ col: 4, row: 4 });
-    expect(cellCenter(1)).toEqual({ x: 1.5, y: 1.5 });
+    expect(cellCenter(1)).toEqual({ x: 2.5, y: 2.5 });
   });
 
   it("越线后的位置画回对应的格子", () => {

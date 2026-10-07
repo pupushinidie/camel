@@ -9,11 +9,11 @@ import { TRACK_LENGTH, isCrazy, type CamelId } from "@camel/game";
  *   14           8
  *   13 12 11 10  9
  *
- * 终点线在 16 和 1 之间。场景里再往外留一圈沙地，所以整块地面是 7×7 个单位。
+ * 终点线在 16 和 1 之间。赛道外再留两格宽的沙地摆装饰，所以整块沙盘是 9×9 个单位。
  * 坐标单位是「格」，x 向右、y 向下（和 CSS 一致）。
  */
 export const RING = 5;
-export const MARGIN = 1;
+export const MARGIN = 2;
 export const BOARD_UNITS = RING + MARGIN * 2;
 
 /** 越线后的位置（17、18… 或 0、−1…）画回赛道上对应的格子。 */

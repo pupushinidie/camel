@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CAPACITY_OPTIONS, type Capacity, type GameCommand, type LobbyRoomSnapshot, type PublicRoomSummary } from "@camel/game";
+import { camelSprite, iconArt } from "./art.js";
 import { useConfirm } from "./confirm.js";
 import GameBoard from "./GameBoard.js";
 import GameRules from "./GameRules.js";
@@ -246,9 +247,11 @@ function App() {
             押对赛段领先者、最终冠军和垫底，比赛结束时金币最多的人获胜。
             创建一间私人房间，或输入房间码加入朋友的对局。
           </p>
+          <img className="ct-hero" src={iconArt.hero} alt="" />
           <div className="camel-showcase" aria-hidden="true">
-            {(["red", "yellow", "blue", "green", "purple"] as const).map((camel) => <span key={camel} className={`ct-mini-ticket camel-${camel}`} />)}
-            <span className="showcase-caption">5 只赛驼 · 2 只疯骆驼</span>
+            {(["red", "yellow", "blue", "green", "purple", "black", "white"] as const).map((camel) => (
+              <span key={camel} className="ct-showcase-camel" style={{ backgroundImage: `url(${camelSprite(camel).still})`, backgroundPositionX: `${(1 / 7) * 100}%`, ...(camelSprite(camel).filter ? { filter: camelSprite(camel).filter } : {}) }} />
+            ))}
           </div>
         </div>
 

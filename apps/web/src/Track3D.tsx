@@ -1,16 +1,19 @@
 import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
-import { TRACK_LENGTH, type CamelId, type DieId, type CrazyId, type Spectator } from "@camel/game";
-import { camelArt, groundArt, spectatorArt } from "./art.js";
+import { TRACK_LENGTH, type CamelId, type CrazyId, type DieId, type Spectator } from "@camel/game";
+import { camelSprite, decorArt, directionIndex, groundArt, spectatorArt } from "./art.js";
+import decorSizes from "./decor-sprites.json";
 import { DRAG_THRESHOLD, clamp, distance, midpoint, useElementSize, useTween, useWheel, wheelZoomFactor, type Point } from "./gestures.js";
+import { DECOR } from "./sceneLayout.js";
 import { BOARD_UNITS, MARGIN, camelHeading, cellCenter, cellGrid, displayCell, spriteDirection } from "./trackGeometry.js";
 
 /**
- * 2.5D 赛道：CSS 3D 画地面、16 格赛道和中间的金字塔，可以拖动旋转、调倾角、缩放。
- * 骆驼和观众是始终正对镜头的立牌，按视角换 8 个朝向的贴图。
+ * 2.5D 赛道：一块立体的沙盘（CSS 3D）——有厚度的沙地、16 块凸起的石板赛道、带底座的金字塔、
+ * 终点拱门和一圈装饰，背后是跟着视角平移的远景。可以拖动旋转、调倾角、缩放。
+ * 骆驼、观众和装饰都是始终正对镜头的立牌，骆驼按视角换 8 个朝向的贴图。
+ * 光从西北（左上）照过来：侧面和金字塔各面按朝向分明暗，影子都落向东南。
  *
- * 每只骆驼三层：位置层（跟着格子平移，带过渡）→ 立牌层（抵消场景旋转，拖动时不能有过渡）
+ * 每只骆驼三层：位置层（left/top 用百分比，跟着格子平移，带过渡）→ 立牌层（抵消场景旋转，拖动时不能有过渡）
  * → 抬升层（同一格里叠第几只，沿立牌自己的竖直方向往上错开，带过渡）。
- * 叠放写在立牌平面里，倾角怎么调，骆驼都正好压在下面那只背上。
  */
 
 export interface DieFx {
@@ -18,6 +21,12 @@ export interface DieFx {
   readonly die: DieId;
   readonly value: number;
   readonly color?: CrazyId;
+}
+
+/** 骆驼落地扬起的一小团沙。 */
+export interface DustFx {
+  readonly key: number;
+  readonly pos: number;
 }
 
 export interface Track3DProps {
@@ -29,6 +38,7 @@ export interface Track3DProps {
   /** 刚被踩到的观众板。 */
   readonly cheeringAt?: number;
   readonly dieFx?: DieFx;
+  readonly dust?: DustFx;
   /** 可以点的格子（放观众板时的合法格）。 */
   readonly selectableCells?: ReadonlySet<number>;
   readonly onCellClick?: (pos: number) => void;
@@ -38,7 +48,7 @@ export interface Track3DProps {
   readonly ownerName: (playerId: string) => string;
   readonly ownerColor: (playerId: string) => string;
   readonly myId: string;
-  /** 叠在画面上的额外内容（例如提示条）。 */
+  /** 叠在画面上的额外内容（例如名次条）。 */
   readonly overlay?: ReactNode;
 }
 
@@ -50,20 +60,39 @@ interface View {
   panY: number;
 }
 
-const DEFAULT_VIEW: View = { spin: -24, tilt: 56, zoom: 1, panX: 0, panY: 0 };
-const TILT_RANGE = [20, 72] as const;
+const DEFAULT_VIEW: View = { spin: -24, tilt: 58, zoom: 1, panX: 0, panY: 0 };
+const TILT_RANGE = [24, 74] as const;
 const ZOOM_RANGE = [0.6, 3] as const;
 const ZOOM_STEP = 1.4;
-/** 透视距离 = 场景边长的这么多倍。 */
+/** 透视距离 = 基准尺寸的这么多倍。 */
 const PERSPECTIVE_RATIO = 2.4;
+/** 1 倍缩放时视口里横向大约放得下多少格；手机上拉近一点，让赛道占满宽度（沙盘两边被裁掉没关系）。 */
+const UNITS_ACROSS = 7.8;
+const UNITS_ACROSS_NARROW = 6.2;
 
-/** 金字塔：底边和高（单位：格）。 */
-const PYRAMID_BASE = 2.3;
-const PYRAMID_HEIGHT = 1.55;
-/** 骆驼立牌的边长（格），以及叠放时每只往上错开多少（占立牌高度的比例）。 */
-const CAMEL_SIZE = 1.12;
-const STACK_LIFT = 0.36;
-const SPECTATOR_SIZE = 0.9;
+/** 沙盘厚度、石板抬高、石板之间的缝（单位：格）。 */
+const PLINTH_DEPTH = 0.55;
+const TILE_LIFT = 0.06;
+const TILE_INSET = 0.04;
+/** 金字塔：底座边长和高、塔身底边和高。 */
+const PLATFORM = 2.7;
+const PLATFORM_HEIGHT = 0.14;
+const PYRAMID_BASE = 2.25;
+const PYRAMID_HEIGHT = 1.5;
+/** 骆驼立牌高度（格），叠放时每只往上错开立牌高度的多少。 */
+const CAMEL_HEIGHT = 1.1;
+const STACK_LIFT = 0.44;
+const SPECTATOR_SIZE = 0.95;
+/** 终点拱门的宽度（格），高度按图片比例。 */
+const ARCH_WIDTH = 1.64;
+/** 影子往东南偏多少（格）。 */
+const SHADOW_SHIFT = 0.09;
+/** 远景图的原始尺寸，以及地平线在图里的高度比例。 */
+const BACKDROP = { width: 400, height: 200, horizon: 0.55 };
+
+/** 金字塔四个面、沙盘四个侧面朝南、西、北、东时的明暗（光从西北来）。 */
+const FACE_SHADE = [0.72, 0.96, 1, 0.6];
+const SIDE_SHADE = [0.62, 0.8, 0.86, 0.54];
 
 type Gesture =
   | { kind: "rotate" | "pan"; start: Point; view: View; moved: boolean; button: number }
@@ -74,8 +103,18 @@ const CAMEL_NAMES: Record<CamelId, string> = {
 };
 export const DIE_NAMES: Record<DieId, string> = { red: "红", yellow: "黄", blue: "蓝", green: "绿", purple: "紫", gray: "灰" };
 
+const DECOR_SIZES = decorSizes as Record<string, { width: number; height: number }>;
+
+/** 漂浮的沙粒：位置和节奏按序号算，每次渲染都一样。 */
+const MOTES = Array.from({ length: 22 }, (_, index) => ({
+  top: (index * 37) % 100,
+  delay: -((index * 1.7) % 14),
+  duration: 11 + ((index * 5) % 9),
+  size: index % 3 === 0 ? 3 : 2,
+}));
+
 function Track3D(props: Track3DProps) {
-  const { stacks, spectators, walking, cheeringAt, dieFx, selectableCells, onCellClick, pyramidActive, onPyramidClick, ownerName, ownerColor, myId, overlay } = props;
+  const { stacks, spectators, walking, cheeringAt, dieFx, dust, selectableCells, onCellClick, pyramidActive, onPyramidClick, ownerName, ownerColor, myId, overlay } = props;
   const frameRef = useRef<HTMLDivElement>(null);
   const frame = useElementSize(frameRef);
   const [view, setView] = useState<View>(DEFAULT_VIEW);
@@ -84,16 +123,18 @@ function Track3D(props: Track3DProps) {
   const gesture = useRef<Gesture | null>(null);
   const tween = useTween<{ spin: number; tilt: number; zoom: number; panX: number; panY: number }>((value) => setView(value));
 
-  // 按默认倾角定 1 倍大小：倾斜后地面在屏幕上变矮，金字塔和骆驼又往上冒一截。
+  // 1 倍大小按视口定：横向放得下 UNITS_ACROSS 格，纵向按默认倾角留出金字塔和骆驼往上冒的高度。
   const defaultTilt = (DEFAULT_VIEW.tilt * Math.PI) / 180;
-  const heightFactor = Math.cos(defaultTilt) * 1.05 + 0.32;
-  const baseSize = Math.max(240, Math.min(frame.width * 0.86, (frame.height * 0.9) / heightFactor));
+  const heightFactor = Math.cos(defaultTilt) + 0.42;
+  const across = frame.width < 600 ? UNITS_ACROSS_NARROW : UNITS_ACROSS;
+  const baseUnit = Math.max(30, Math.min(frame.width / across, (frame.height * 0.94) / (BOARD_UNITS * heightFactor)));
+  const baseSize = baseUnit * BOARD_UNITS;
+  const unit = baseUnit * view.zoom;
   const size = baseSize * view.zoom;
-  const unit = size / BOARD_UNITS;
 
   const limit = (next: View): View => {
     const zoom = clamp(next.zoom, ZOOM_RANGE[0], ZOOM_RANGE[1]);
-    const room = baseSize * zoom * 0.6;
+    const room = baseSize * zoom * 0.55;
     return {
       spin: next.spin,
       tilt: clamp(next.tilt, TILT_RANGE[0], TILT_RANGE[1]),
@@ -115,7 +156,7 @@ function Track3D(props: Track3DProps) {
     animateTo({ ...view, zoom, panX: view.panX * ratio, panY: view.panY * ratio });
   }
 
-  /** 转 90°：转到最近的整 45° 再加减，按钮转几次之后角度还是整齐的。 */
+  /** 转 90°：先对齐到最近的整 45°，按钮转几次之后角度还是整齐的。 */
   function turn(delta: number) {
     animateTo({ ...view, spin: Math.round(view.spin / 45) * 45 + delta });
   }
@@ -134,7 +175,7 @@ function Track3D(props: Track3DProps) {
     });
   });
 
-  /** 点击交给浏览器在 3D 里判定（只有一层地面，立牌都不接收点击）。 */
+  /** 点击交给浏览器在 3D 里判定；立牌、影子和装饰都不接收点击。 */
   function targetAt(clientX: number, clientY: number): { cell?: number; pyramid?: boolean } {
     const element = document.elementFromPoint(clientX, clientY);
     const cell = element?.closest<HTMLElement>("[data-cell]");
@@ -220,13 +261,25 @@ function Track3D(props: Track3DProps) {
     gesture.current = null;
   }
 
+  // ---------- 几何辅助 ----------
+  const px = (units: number) => units * unit;
   // 立牌：抵消场景的 rotateX(tilt) rotateZ(spin)，正对镜头。
   const billboard = `rotateZ(${-view.spin}deg) rotateX(${-view.tilt}deg)`;
-  const at = (x: number, y: number, z = 0) => `translate3d(${x * unit}px, ${y * unit}px, ${z * unit}px)`;
-  /** 立牌的位置用场景边长的百分比：缩放时场景变大，百分比不变，不会触发 left/top 的过渡。 */
-  const place = (x: number, y: number): CSSProperties => ({ left: `${(x / BOARD_UNITS) * 100}%`, top: `${(y / BOARD_UNITS) * 100}%` });
+  /** 立牌和影子的位置用场景边长的百分比：缩放时百分比不变，不会触发 left/top 的过渡。 */
+  const place = (x: number, y: number, z = 0): CSSProperties => ({
+    left: `${(x / BOARD_UNITS) * 100}%`,
+    top: `${(y / BOARD_UNITS) * 100}%`,
+    ...(z ? { transform: `translateZ(${px(z)}px)` } : {}),
+  });
   /** 立牌贴图：底边中点落在锚点上。 */
-  const standee = (sizeUnits: number): CSSProperties => ({ width: sizeUnits * unit, height: sizeUnits * unit, left: (-sizeUnits * unit) / 2, top: -sizeUnits * unit });
+  const standee = (width: number, height: number): CSSProperties => ({ width: px(width), height: px(height), left: -px(width) / 2, top: -px(height) });
+  /** 场景里某一点离镜头多近（正数在画面下方、更靠近镜头），用来把挡在前面的高装饰调成半透明。 */
+  const spinRad = (view.spin * Math.PI) / 180;
+  const nearness = (x: number, y: number) => {
+    const dx = x - BOARD_UNITS / 2;
+    const dy = y - BOARD_UNITS / 2;
+    return dx * Math.sin(spinRad) + dy * Math.cos(spinRad);
+  };
 
   // 每只骆驼所在的格子和高度（越线后的位置画回赛道上对应的格子）。
   const camels: { camel: CamelId; pos: number; height: number }[] = [];
@@ -236,11 +289,31 @@ function Track3D(props: Track3DProps) {
   camels.sort((a, b) => a.camel.localeCompare(b.camel)); // 元素顺序固定，React 才能复用节点做过渡
 
   const cells = Array.from({ length: TRACK_LENGTH }, (_, index) => index + 1);
-  const pyramidCenter = BOARD_UNITS / 2;
+  const center = BOARD_UNITS / 2;
   const slant = Math.hypot(PYRAMID_HEIGHT, PYRAMID_BASE / 2);
   const elevation = (Math.atan2(PYRAMID_HEIGHT, PYRAMID_BASE / 2) * 180) / Math.PI;
-  // 光从左上方来：四个面明暗不同，转动时跟着地面一起转。
-  const faceShade = [0.78, 0.62, 0.9, 1];
+  const apex = PLATFORM_HEIGHT + PYRAMID_HEIGHT;
+  // 金字塔的影子：底座的东北角、西南角和塔尖投到地上的点围成的三角形（光从西北来）
+  const reach = PLATFORM / 2 + 0.75;
+  const shadowBox = { left: center - PLATFORM / 2, top: center - PLATFORM / 2, size: PLATFORM / 2 + reach };
+  const shadowPoint = (x: number, y: number) => `${((x - shadowBox.left) / shadowBox.size) * 100}% ${((y - shadowBox.top) / shadowBox.size) * 100}%`;
+  const pyramidShadow = `polygon(${shadowPoint(center + PLATFORM / 2, center - PLATFORM / 2)}, ${shadowPoint(center + reach, center + reach)}, ${shadowPoint(center - PLATFORM / 2, center + PLATFORM / 2)})`;
+  const arch = DECOR_SIZES.arch ?? { width: 106, height: 82 };
+  const archHeight = (ARCH_WIDTH * arch.height) / arch.width;
+
+  // 远景：整数倍放大（像素才整齐），宽度不小于视口，所以同一时间只看得到一个太阳。
+  // 转一整圈正好滚过一整张（远处的东西移动得慢）；倾角越平，地平线越低。
+  const backdropScale = Math.max(2, Math.ceil(frame.width / BACKDROP.width));
+  const backdropWidth = BACKDROP.width * backdropScale;
+  const backdropHeight = BACKDROP.height * backdropScale;
+  const horizon = frame.height * (0.34 + (view.tilt - DEFAULT_VIEW.tilt) * 0.012) + view.panY * 0.3;
+  const backdropStyle: CSSProperties = {
+    backgroundImage: `url(${groundArt.backdrop})`,
+    backgroundSize: `${backdropWidth}px ${backdropHeight}px`,
+    backgroundPosition: `${Math.round((-view.spin / 360) * backdropWidth)}px ${Math.round(horizon - backdropHeight * BACKDROP.horizon)}px`,
+    // 越接近俯视，天空越不该出现：倾角 46° 以下远景渐隐，只剩底色
+    opacity: clamp((view.tilt - 34) / 12, 0, 1),
+  };
 
   const frameClasses = ["ct-frame"];
   if (hoverCell !== null || pyramidActive) frameClasses.push("pointing");
@@ -257,73 +330,156 @@ function Track3D(props: Track3DProps) {
       onContextMenu={(event) => event.preventDefault()}
       style={{ "--unit": `${unit}px` } as CSSProperties}
     >
+      <div className="ct-backdrop" style={backdropStyle} aria-hidden="true" />
       <div className="ct-panner" style={{ perspective: `${baseSize * PERSPECTIVE_RATIO * view.zoom}px`, transform: `translate(${view.panX}px, ${view.panY}px)` }}>
         <div
           className="ct-scene"
           style={{ width: size, height: size, marginLeft: -size / 2, marginTop: -size / 2, transform: `rotateX(${view.tilt}deg) rotateZ(${view.spin}deg)` }}
         >
-          <div className="ct-ground" style={{ backgroundImage: `url(${groundArt.sand})`, backgroundSize: `${unit * 2}px ${unit * 2}px` }} />
+          {/* 沙盘四个侧面：从中心转到四条边上，岩层贴图始终是横的 */}
+          {[0, 1, 2, 3].map((side) => (
+            <div
+              key={`plinth-${side}`}
+              className="ct-plinth"
+              style={{
+                left: 0,
+                top: size / 2,
+                width: size,
+                height: px(PLINTH_DEPTH),
+                transformOrigin: "50% 0",
+                transform: `rotateZ(${side * 90}deg) translateY(${size / 2}px) rotateX(-90deg)`,
+                backgroundImage: `url(${groundArt.strata})`,
+                "--shade": SIDE_SHADE[side],
+              } as CSSProperties}
+            />
+          ))}
 
+          {/* 地面：沙地 + 一层暖光 */}
+          <div className="ct-ground" style={{ backgroundImage: `url(${groundArt.sand})`, backgroundSize: `${px(2)}px ${px(2)}px` }}>
+            <div className="ct-ground-light" />
+          </div>
+
+          {/* 赛道：石板落在地上的影子 + 抬高一点的石板 */}
           {cells.map((pos) => {
             const { col, row } = cellGrid(pos);
-            const classes = ["ct-cell"];
+            const left = px(MARGIN + col + TILE_INSET);
+            const top = px(MARGIN + row + TILE_INSET);
+            const side = px(1 - TILE_INSET * 2);
+            const classes = ["ct-tile"];
             if (selectableCells?.has(pos)) classes.push("selectable");
             if (hoverCell === pos) classes.push("hover");
-            return (
+            return [
+              <div key={`shadow-${pos}`} className="ct-tile-shadow" style={{ left: left + px(0.05), top: top + px(0.05), width: side, height: side }} />,
               <div
-                key={pos}
+                key={`tile-${pos}`}
                 className={classes.join(" ")}
                 data-cell={pos}
-                style={{ left: (MARGIN + col) * unit, top: (MARGIN + row) * unit, width: unit, height: unit, backgroundImage: `url(${groundArt.tile})` }}
+                style={{ left, top, width: side, height: side, transform: `translateZ(${px(TILE_LIFT)}px)`, backgroundImage: `url(${groundArt.tile})` }}
               >
                 <span className="ct-cell-number">{pos}</span>
-              </div>
-            );
+              </div>,
+            ];
           })}
 
-          {/* 终点线：在第 16 格和第 1 格之间 */}
-          <div className="ct-finish" style={{ left: MARGIN * unit, top: (MARGIN + 1) * unit - unit * 0.07, width: unit, height: unit * 0.14 }} />
+          {/* 终点线：第 16 格和第 1 格之间，画在石板上面 */}
+          <div className="ct-finish" style={{ left: px(MARGIN), top: px(MARGIN + 1) - px(0.07), width: px(1), height: px(0.14), transform: `translateZ(${px(TILE_LIFT) + 1}px)` }} />
 
-          {/* 观众板落在地上的那块底座：俯视时也看得出是哪一面 */}
+          {/* 观众板落在石板上的底座：俯视时也看得出是哪一面、谁的 */}
           {spectators.map((spectator) => {
             const { col, row } = cellGrid(spectator.pos);
             return (
               <div
                 key={`pad-${spectator.owner}`}
                 className={`ct-spectator-pad ${spectator.side}`}
-                style={{ left: (MARGIN + col + 0.12) * unit, top: (MARGIN + row + 0.12) * unit, width: unit * 0.76, height: unit * 0.76, borderColor: ownerColor(spectator.owner) }}
+                style={{ left: px(MARGIN + col + 0.14), top: px(MARGIN + row + 0.14), width: px(0.72), height: px(0.72), borderColor: ownerColor(spectator.owner), transform: `translateZ(${px(TILE_LIFT) + 1}px)` }}
               />
             );
           })}
 
-          {/* 金字塔：四个三角面 */}
+          {/* 金字塔：影子、底座、四个三角面（顶上一截金色，南面有门） */}
+          <div className="ct-pyramid-shadow" style={{ left: px(shadowBox.left), top: px(shadowBox.top), width: px(shadowBox.size), height: px(shadowBox.size), clipPath: pyramidShadow, transform: `translateZ(${px(TILE_LIFT) + 2}px)` }} />
+          <div className="ct-platform-top" style={{ left: px(center - PLATFORM / 2), top: px(center - PLATFORM / 2), width: px(PLATFORM), height: px(PLATFORM), transform: `translateZ(${px(PLATFORM_HEIGHT)}px)`, backgroundImage: `url(${groundArt.brick})`, backgroundSize: `${px(0.5)}px ${px(0.5)}px` }} />
+          {[0, 1, 2, 3].map((side) => (
+            <div
+              key={`platform-${side}`}
+              className="ct-platform-side"
+              style={{
+                left: px(center - PLATFORM / 2),
+                top: px(center),
+                width: px(PLATFORM),
+                height: px(PLATFORM_HEIGHT),
+                transformOrigin: "50% 0",
+                transform: `translateZ(${px(PLATFORM_HEIGHT)}px) rotateZ(${side * 90}deg) translateY(${px(PLATFORM / 2)}px) rotateX(-90deg)`,
+                backgroundImage: `url(${groundArt.brick})`,
+                backgroundSize: `${px(0.5)}px ${px(0.5)}px`,
+                "--shade": FACE_SHADE[side]! * 0.9,
+              } as CSSProperties}
+            />
+          ))}
           {[0, 1, 2, 3].map((side) => (
             <div
               key={side}
               className={pyramidActive ? "ct-pyramid-face active" : "ct-pyramid-face"}
               data-pyramid="1"
               style={{
-                left: (pyramidCenter - PYRAMID_BASE / 2) * unit,
-                top: (pyramidCenter - slant) * unit,
-                width: PYRAMID_BASE * unit,
-                height: slant * unit,
-                backgroundImage: `url(${groundArt.brick})`,
-                backgroundSize: `${unit * 0.75}px ${unit * 0.75}px`,
-                "--shade": faceShade[side],
-                transform: `rotateZ(${side * 90}deg) translateY(${(PYRAMID_BASE / 2) * unit}px) rotateX(${-elevation}deg)`,
+                left: px(center - PYRAMID_BASE / 2),
+                top: px(center - slant),
+                width: px(PYRAMID_BASE),
+                height: px(slant),
+                backgroundImage: `linear-gradient(to bottom, #ffe7a0 0 6%, #f2c14e 6% 15%, #b8862a 15% 17%, transparent 17%), url(${groundArt.brick})`,
+                backgroundSize: `100% 100%, ${px(0.62)}px ${px(0.62)}px`,
+                "--shade": FACE_SHADE[side],
+                transform: `translateZ(${px(PLATFORM_HEIGHT)}px) rotateZ(${side * 90}deg) translateY(${px(PYRAMID_BASE / 2)}px) rotateX(${-elevation}deg)`,
               } as CSSProperties}
-            />
+            >
+              {side === 0 && <span className="ct-pyramid-door" />}
+            </div>
           ))}
+
+          {/* 终点拱门：竖在终点线上的一块面板，不跟镜头转（像真的拱门一样，从侧面看是薄的） */}
+          <div
+            className="ct-arch"
+            style={{
+              left: px(MARGIN + 0.5 - ARCH_WIDTH / 2),
+              top: px(MARGIN + 1) - px(archHeight),
+              width: px(ARCH_WIDTH),
+              height: px(archHeight),
+              transformOrigin: "50% 100%",
+              transform: `translateZ(${px(TILE_LIFT)}px) rotateX(-90deg)`,
+              backgroundImage: `url(${groundArt.arch})`,
+            }}
+          />
+
+          {/* 装饰立牌（挡在赛道前面的高装饰变半透明） */}
+          {DECOR.map((decor, index) => {
+            const art = DECOR_SIZES[decor.kind] ?? { width: 1, height: 1 };
+            const height = decor.size;
+            const width = (height * art.width) / art.height;
+            const shadowWidth = width * 0.8;
+            const shadowHeight = Math.min(width, height) * 0.36;
+            const inFront = decor.tall && nearness(decor.x, decor.y) > 2.7;
+            return (
+              <div key={`decor-${index}`} className="ct-anchor" style={place(decor.x, decor.y)}>
+                <div className="ct-shadow" style={{ width: px(shadowWidth), height: px(shadowHeight), left: px(SHADOW_SHIFT * 2 - shadowWidth / 2), top: px(SHADOW_SHIFT * 2 - shadowHeight / 2) }} />
+                <div className="ct-billboard" style={{ transform: billboard }}>
+                  <div
+                    className={inFront ? "ct-decor faded" : "ct-decor"}
+                    style={{ ...standee(width, height), backgroundImage: `url(${decorArt(decor.kind)})`, ...(decor.flip ? { transform: "scaleX(-1)" } : {}) }}
+                  />
+                </div>
+              </div>
+            );
+          })}
 
           {/* 观众立牌 */}
           {spectators.map((spectator) => {
-            const center = cellCenter(spectator.pos);
-            const art = spectatorArt[spectator.side];
+            const spot = cellCenter(spectator.pos);
             const cheering = cheeringAt !== undefined && displayCell(cheeringAt) === spectator.pos;
             return (
-              <div key={`sp-${spectator.owner}`} className="ct-anchor" style={place(center.x, center.y + 0.28)}>
+              <div key={`sp-${spectator.owner}`} className="ct-anchor" style={place(spot.x, spot.y + 0.26, TILE_LIFT)}>
+                <div className="ct-shadow" style={{ width: px(0.66), height: px(0.26), left: px(SHADOW_SHIFT - 0.33), top: px(SHADOW_SHIFT - 0.13) }} />
                 <div className="ct-billboard" style={{ transform: billboard }}>
-                  <div className={cheering ? "ct-spectator cheering" : "ct-spectator"} style={{ ...standee(SPECTATOR_SIZE), position: "absolute", backgroundImage: `url(${art})` }}>
+                  <div className={cheering ? "ct-spectator cheering" : "ct-spectator"} style={{ ...standee(SPECTATOR_SIZE, SPECTATOR_SIZE), backgroundImage: `url(${spectatorArt[spectator.side]})` }}>
                     <span className="ct-spectator-tag" style={{ background: ownerColor(spectator.owner) }}>
                       {spectator.owner === myId ? "我" : ownerName(spectator.owner).slice(0, 4)} {spectator.side === "cheer" ? "+1" : "−1"}
                     </span>
@@ -335,21 +491,27 @@ function Track3D(props: Track3DProps) {
 
           {/* 骆驼 */}
           {camels.map(({ camel, pos, height }) => {
-            const center = cellCenter(pos);
-            const direction = spriteDirection(camelHeading(camel, pos), view.spin);
-            const art = camelArt(camel);
+            const spot = cellCenter(pos);
+            const heading = camelHeading(camel, pos);
+            const direction = spriteDirection(heading, view.spin);
+            const index = directionIndex(direction);
+            const sprite = camelSprite(camel);
             const moving = walking.has(camel);
-            const walk = moving ? art.walk?.[direction] : undefined;
-            const sprite: CSSProperties = walk
-              ? { backgroundImage: `url(${walk.url})`, backgroundSize: `${walk.frames * 100}% 100%`, "--frames": walk.frames } as CSSProperties
-              : { backgroundImage: `url(${art.still[direction]})`, backgroundSize: "100% 100%" };
+            const walkSheet = moving && sprite.walk?.directions.includes(direction) ? sprite.walk : undefined;
+            const spriteWidth = (CAMEL_HEIGHT * sprite.width) / sprite.height;
+            const look: CSSProperties = walkSheet
+              ? { backgroundImage: `url(${walkSheet.url})`, backgroundSize: `${walkSheet.frames * 100}% 800%`, backgroundPositionY: `${(index / 7) * 100}%`, "--frames": walkSheet.frames } as CSSProperties
+              : { backgroundImage: `url(${sprite.still})`, backgroundSize: "800% 100%", backgroundPositionX: `${(index / 7) * 100}%` };
             return (
-              <div key={camel} className="ct-anchor ct-camel-anchor" style={place(center.x, center.y + 0.12)}>
+              <div key={camel} className="ct-anchor ct-camel-anchor" style={place(spot.x, spot.y + 0.1, TILE_LIFT)}>
+                {(height === 0 || moving) && (
+                  <div className="ct-shadow" style={{ width: px(0.82), height: px(0.3), left: px(SHADOW_SHIFT - 0.41), top: px(SHADOW_SHIFT - 0.15), transform: `rotateZ(${heading}deg)` }} />
+                )}
                 <div className="ct-billboard" style={{ transform: billboard }}>
-                  <div className="ct-lift" style={{ ...standee(CAMEL_SIZE), transform: `translateY(${-height * STACK_LIFT * 100}%) translateZ(${height * 2}px)` }}>
+                  <div className="ct-lift" style={{ ...standee(spriteWidth, CAMEL_HEIGHT), transform: `translateY(${-height * STACK_LIFT * 100}%) translateZ(${height * 2}px)` }}>
                     <div
-                      className={["ct-camel", moving ? "walking" : "", walk ? "animated" : ""].join(" ")}
-                      style={{ ...(art.filter ? { filter: art.filter } : {}), ...sprite }}
+                      className={["ct-camel", moving ? "walking" : "", walkSheet ? "animated" : ""].join(" ")}
+                      style={{ ...(sprite.filter ? { filter: sprite.filter } : {}), ...look }}
                       aria-label={`${CAMEL_NAMES[camel]}骆驼，第 ${displayCell(pos)} 格`}
                     />
                   </div>
@@ -358,11 +520,25 @@ function Track3D(props: Track3DProps) {
             );
           })}
 
+          {/* 骆驼落地扬起的沙 */}
+          {dust && (() => {
+            const spot = cellCenter(dust.pos);
+            return (
+              <div key={`dust-${dust.key}`} className="ct-anchor" style={place(spot.x, spot.y + 0.2, TILE_LIFT)}>
+                <div className="ct-billboard" style={{ transform: billboard }}>
+                  <div className="ct-dust" style={{ width: px(0.9), height: px(0.4), left: -px(0.45), top: -px(0.4) }}>
+                    {Array.from({ length: 7 }, (_, index) => <i key={index} style={{ "--i": index } as CSSProperties} />)}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* 掷出的骰子从金字塔顶冒出来 */}
           {dieFx && (
-            <div key={dieFx.key} className="ct-anchor" style={{ transform: at(pyramidCenter, pyramidCenter, PYRAMID_HEIGHT) }}>
+            <div key={dieFx.key} className="ct-anchor" style={place(center, center, apex)}>
               <div className="ct-billboard" style={{ transform: billboard }}>
-                <div className={`ct-die-fx die-${dieFx.die}`} style={{ "--die": `${Math.round(unit * 0.55)}px` } as CSSProperties}>
+                <div className={`ct-die-fx die-${dieFx.die}`} style={{ "--die": `${Math.round(px(0.55))}px` } as CSSProperties}>
                   <span className={`ct-die die-${dieFx.color ?? dieFx.die}`}>{dieFx.value}</span>
                 </div>
               </div>
@@ -370,6 +546,13 @@ function Track3D(props: Track3DProps) {
           )}
         </div>
       </div>
+
+      <div className="ct-motes" aria-hidden="true">
+        {MOTES.map((mote, index) => (
+          <i key={index} style={{ top: `${mote.top}%`, width: mote.size, height: mote.size, animationDelay: `${mote.delay}s`, animationDuration: `${mote.duration}s` }} />
+        ))}
+      </div>
+      <div className="ct-vignette" aria-hidden="true" />
 
       {overlay}
 

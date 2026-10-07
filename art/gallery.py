@@ -80,8 +80,67 @@ def round1() -> dict:
     }
 
 
+def round2() -> dict:
+    """第二轮：场景升级后的整体效果 + 装饰、远景、疯骆驼、界面小图。推荐项就是现在牌桌上用的。"""
+    props = "r2/props"
+
+    def pick(item_id: str, title: str, note: str, recommended: str, scale: int = 3, **extra) -> dict:
+        sources = [(p.split("/")[-1][:-4], p, "") for p in files(item_id, props)]
+        return image_item(item_id, title, note, sources, recommended, scale=scale, **extra)
+
+    return {
+        "round": "r2",
+        "title": "沙丘赛驼 · 第二轮：场景质感",
+        "updated": time.strftime("%m-%d %H:%M"),
+        "spent": pixellab.spent_usd(),
+        "intro": ("场景改成了立体沙盘：有厚度的沙地和岩层侧面、凸起的石板赛道、带底座和金顶的金字塔、终点拱门、"
+                  "一圈装饰（挡住赛道时自动半透明）、影子、扬沙、漂浮沙粒、跟着视角转的夕阳远景。\n"
+                  "上面是改前 / 改后的真实截图，现在牌桌上用的就是每项标「推荐」的那张。想换哪张就点「选这张」，"
+                  "都不满意就点「重画」写备注。最后把底部文字复制给我。"),
+        "preview": [
+            {"src": "style/shots/board-placeholder.png", "caption": "改前"},
+            {"src": "r2/shots/after-default.png", "caption": "改后（默认视角）"},
+            {"src": "r2/shots/after-rotated.png", "caption": "改后（右转 90°：挡在前面的棕榈自动变半透明）"},
+            {"src": "r2/strips/walk-red.gif", "caption": "赛驼走路（5 种颜色共用这套动画）"},
+            {"src": "r2/strips/walk-black.gif", "caption": "黑疯骆驼走路"},
+            {"src": "r2/strips/walk-white.gif", "caption": "白疯骆驼走路"},
+        ],
+        "items": [
+            image_item("team", "5 只赛驼", "用你选的 B 当底，只把鞍毯、笼头、流苏换成队色：形状和动画完全一样，像实体游戏里一模一样的骆驼棋子。"
+                       "想要每只长得不一样就点「重画」。", [("换色", "r2/strips/team.png", "同一只骆驼换鞍毯颜色（现在的做法）")], "换色", wide=True, scale=3),
+            image_item("crazy-black", "疯骆驼 · 黑", "模型画成了双峰（赛驼是单峰），正好一眼分出是疯骆驼。从左到右：正面、右前、右、右后、背面、左后、左、左前。",
+                       [(n, f"r2/strips/crazy-black-{n}.png", "") for n in ("s11", "s23")], "s11", wide=True, scale=2),
+            image_item("crazy-white", "疯骆驼 · 白", "", [(n, f"r2/strips/crazy-white-{n}.png", "") for n in ("s11", "s23")], "s11", wide=True, scale=2),
+            image_item("backdrop", "远景", "转视角时远景跟着横向滚动，所以要能首尾无缝接上：把原图左右对调后重画了中间的接缝（三张是重画时的三个种子）。",
+                       [(f"roll-c{i}", f"r2/seam/roll-c{i}-full.png", "") for i in (1, 2, 3)], "roll-c2", wide=True, scale=2),
+            pick("strata", "沙盘侧面岩层", "", "strata-c2", scale=2),
+            pick("palm", "棕榈", "", "palm-c1"),
+            pick("tent", "帐篷", "", "tent-c2"),
+            pick("stand", "看台", "", "stand-c2"),
+            pick("obelisk", "方尖碑", "", "obelisk-c1"),
+            pick("arch", "终点拱门", "竖在第 16 格和第 1 格之间，不跟镜头转（侧面看是薄的）。", "arch-c1"),
+            pick("flag", "终点旗子", "", "flag-c1"),
+            pick("brazier", "金字塔门口的火盆", "", "brazier-c1"),
+            pick("rocks", "岩石", "", "rocks-c1"),
+            pick("shrub", "灌木", "", "shrub-c2"),
+            pick("coin", "金币图标", "", "coin-c1", scale=4),
+            pick("pyramid-ticket", "金字塔票图标", "", "pyramid-ticket-c1", scale=4),
+            pick("ticket", "赛段下注票", "票面上的骆驼剪影按队色换色，票值压在下面。", "ticket-c3"),
+            pick("card-back", "终局卡背", "手里的终局卡和牌堆里别人押的牌都用它，外面一圈是队色。", "card-back-c2"),
+            pick("partner", "合伙图标", "", "partner-c2", scale=4),
+            pick("hero", "首页插画", "放在首页介绍文字下面。", "hero-c2", scale=2, wide=True),
+        ],
+    }
+
+
+ROUNDS = {"r1": round1, "r2": round2}
+
+
 if __name__ == "__main__":
+    import sys
+
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "gallery.json").write_text(json.dumps(round1(), ensure_ascii=False, indent=1))
+    build_round = ROUNDS[sys.argv[1] if len(sys.argv) > 1 else "r2"]
+    (OUT / "gallery.json").write_text(json.dumps(build_round(), ensure_ascii=False, indent=1))
     shutil.copyfile(ART / "gallery.html", OUT / "gallery.html")
     print("gallery ok, spent", round(pixellab.spent_usd(), 4))

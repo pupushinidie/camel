@@ -26,3 +26,66 @@
 {"time": "2026-10-06 21:52:31", "name": "boo2-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007008026520411174}, "seconds": 36.0}
 {"time": "2026-10-06 21:53:07", "name": "boo2-c3", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0069159578747219515}, "seconds": 36.3}
 {"time": "2026-10-06 21:56:19", "name": "walkB-east", "endpoint": "/characters/animations", "usage": null, "seconds": 123.9, "jobs": 1}
+{"time": "2026-10-06 22:49:28", "name": "backdrop-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006924701637691922}, "seconds": 23.0}
+{"time": "2026-10-06 22:50:46", "name": "backdrop-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.011194213787714642}, "seconds": 78.3}
+{"time": "2026-10-06 22:51:23", "name": "backdrop-c3", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006872745911280315}, "seconds": 37.4}
+{"time": "2026-10-06 22:51:53", "name": "palm-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006262020693884956}, "seconds": 30.2}
+{"time": "2026-10-06 22:52:26", "name": "crazy-black-s11", "endpoint": "/create-character-v3", "usage": {"type": "usd", "usd": 0.04110332688358095}, "seconds": 203.4, "status": "completed", "character_id": "c53d4c5e-901e-4a20-9ef2-20d683ed1563"}
+{"time": "2026-10-06 22:52:41", "name": "palm-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0074117296536763515}, "seconds": 47.6}
+{"time": "2026-10-06 22:53:11", "name": "palm-c3", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006103543414009942}, "seconds": 30.2}
+{"time": "2026-10-06 22:53:44", "name": "shrub-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006547094768948025}, "seconds": 32.8}
+{"time": "2026-10-06 22:54:17", "name": "shrub-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006766996516121759}, "seconds": 33.5}
+{"time": "2026-10-06 22:54:49", "name": "rocks-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006316589779324002}, "seconds": 31.8}
+{"time": "2026-10-06 22:55:24", "name": "rocks-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006898954444461399}, "seconds": 34.8}
+{"time": "2026-10-06 22:56:04", "name": "crazy-black-s23", "endpoint": "/create-character-v3", "usage": {"type": "usd", "usd": 0.04250901882516013}, "seconds": 214.6, "status": "completed", "character_id": "0ec95d9a-97ed-421d-a141-2e867c4c7f31"}
+{"time": "2026-10-06 22:56:09", "name": "tent-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0076001526514689124}, "seconds": 45.3}
+{"time": "2026-10-06 22:56:44", "name": "tent-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006677429146236844}, "seconds": 35.0}
+{"time": "2026-10-06 22:57:24", "name": "stand-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00680105988184611}, "seconds": 39.1}
+{"time": "2026-10-06 22:57:56", "name": "stand-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006745083252588908}, "seconds": 32.5}
+{"time": "2026-10-06 22:58:31", "name": "flag-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006660460498597887}, "seconds": 34.5}
+{"time": "2026-10-06 22:59:01", "name": "flag-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00636731070942349}, "seconds": 30.9}
+{"time": "2026-10-06 22:59:31", "name": "brazier-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0062034285333421495}, "seconds": 29.9}
+{"time": "2026-10-06 22:59:32", "name": "crazy-white-s11", "endpoint": "/create-character-v3", "usage": {"type": "usd", "usd": 0.04110253067149056}, "seconds": 204.2, "status": "completed", "character_id": "51150933-48b2-4222-bb50-a8eb93ebc56b"}
+{"time": "2026-10-06 23:00:06", "name": "brazier-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006453747961256239}, "seconds": 34.3}
+{"time": "2026-10-06 23:00:40", "name": "arch-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006725108967887031}, "seconds": 34.6}
+{"time": "2026-10-06 23:01:21", "name": "arch-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007418870952394274}, "seconds": 40.7}
+{"time": "2026-10-06 23:02:14", "name": "arch-c3", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.008001029147042168}, "seconds": 52.9}
+{"time": "2026-10-06 23:02:46", "name": "obelisk-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006489167796240912}, "seconds": 32.3}
+{"time": "2026-10-06 23:03:17", "name": "crazy-white-s23", "endpoint": "/create-character-v3", "usage": {"type": "usd", "usd": 0.042654934075143605}, "seconds": 222.0, "status": "completed", "character_id": "1ed9db27-038f-48d7-a62b-dd0fdeba46db"}
+{"time": "2026-10-06 23:03:28", "name": "obelisk-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007229800383249919}, "seconds": 41.6}
+{"time": "2026-10-06 23:04:31", "name": "strata-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.009256846136516995}, "seconds": 63.0}
+{"time": "2026-10-06 23:04:47", "name": "base-walk-south", "endpoint": "/characters/animations", "usage": null, "seconds": 84.4, "jobs": 1}
+{"time": "2026-10-06 23:05:24", "name": "strata-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.008519265916612413}, "seconds": 53.7}
+{"time": "2026-10-06 23:05:57", "name": "coin-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006482498672273424}, "seconds": 32.6}
+{"time": "2026-10-06 23:06:46", "name": "base-walk-south-east", "endpoint": "/characters/animations", "usage": null, "seconds": 119.1, "jobs": 1}
+{"time": "2026-10-06 23:06:59", "name": "coin-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00987157564693027}, "seconds": 62.0}
+{"time": "2026-10-06 23:07:33", "name": "coin-c3", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0066803482108645975}, "seconds": 34.2}
+{"time": "2026-10-06 23:08:12", "name": "pyramid-ticket-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0072296481132507326}, "seconds": 38.4}
+{"time": "2026-10-06 23:08:44", "name": "pyramid-ticket-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006286911169687907}, "seconds": 32.0}
+{"time": "2026-10-06 23:08:50", "name": "base-walk-north-east", "endpoint": "/characters/animations", "usage": null, "seconds": 123.5, "jobs": 1}
+{"time": "2026-10-06 23:09:23", "name": "ticket-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007017170323265924}, "seconds": 39.8}
+{"time": "2026-10-06 23:09:56", "name": "ticket-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0064195856518215605}, "seconds": 32.5}
+{"time": "2026-10-06 23:10:25", "name": "ticket-c3", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.005925947056876288}, "seconds": 29.3}
+{"time": "2026-10-06 23:10:57", "name": "card-back-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0062903277344173855}, "seconds": 32.2}
+{"time": "2026-10-06 23:11:06", "name": "base-walk-north", "endpoint": "/characters/animations", "usage": null, "seconds": 136.4, "jobs": 1}
+{"time": "2026-10-06 23:11:33", "name": "card-back-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00661792876985338}, "seconds": 35.3}
+{"time": "2026-10-06 23:12:09", "name": "partner-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.0078652274078793}, "seconds": 36.4}
+{"time": "2026-10-06 23:12:37", "name": "partner-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006000370608435737}, "seconds": 27.5}
+{"time": "2026-10-07 00:01:34", "name": "hero-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007044743061065674}, "seconds": 21.7}
+{"time": "2026-10-07 00:02:09", "name": "hero-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006901285648345947}, "seconds": 35.0}
+{"time": "2026-10-07 00:03:08", "name": "hero-c3", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.00944518542289734}, "seconds": 58.5}
+{"time": "2026-10-07 00:03:46", "name": "crazy-black-s11-walk-south", "endpoint": "/characters/animations", "usage": {"type": "usd", "usd": 0.014234781132804023}, "seconds": 105.3, "jobs": 1}
+{"time": "2026-10-07 00:04:17", "name": "seam-c1", "endpoint": "/create-image-bitforge", "usage": {"type": "usd", "usd": 0.009018981801138984}, "seconds": 25.2}
+{"time": "2026-10-07 00:05:01", "name": "seam-c2", "endpoint": "/create-image-bitforge", "usage": {"type": "usd", "usd": 0.01028539995352427}, "seconds": 44.6}
+{"time": "2026-10-07 00:05:18", "name": "crazy-black-s11-walk-south-east", "endpoint": "/characters/animations", "usage": {"type": "usd", "usd": 0.013704263236787584}, "seconds": 92.1, "jobs": 1}
+{"time": "2026-10-07 00:06:18", "name": "roll-c1", "endpoint": "/create-image-bitforge", "usage": {"type": "usd", "usd": 0.00911894941329956}, "seconds": 26.9}
+{"time": "2026-10-07 00:07:00", "name": "crazy-black-s11-walk-east", "endpoint": "/characters/animations", "usage": {"type": "usd", "usd": 0.014268787039650812}, "seconds": 101.1, "jobs": 1}
+{"time": "2026-10-07 00:07:30", "name": "roll-c2", "endpoint": "/create-image-bitforge", "usage": {"type": "usd", "usd": 0.014840784821245404}, "seconds": 72.7}
+{"time": "2026-10-07 00:08:18", "name": "roll-c3", "endpoint": "/create-image-bitforge", "usage": {"type": "usd", "usd": 0.008795030302471585}, "seconds": 47.2}
+{"time": "2026-10-07 00:08:19", "name": "crazy-black-s11-walk-north-east", "endpoint": "/characters/animations", "usage": {"type": "usd", "usd": 0.012041232585906982}, "seconds": 79.7, "jobs": 1}
+{"time": "2026-10-07 00:10:10", "name": "crazy-black-s11-walk-north", "endpoint": "/characters/animations", "usage": {"type": "usd", "usd": 0.015794704463746815}, "seconds": 110.7, "jobs": 1}
+{"time": "2026-10-07 00:12:55", "name": "crazy-white-s11-walk-south", "endpoint": "/characters/animations", "usage": {"type": "usd", "usd": 0.020640295081668432}, "seconds": 164.9, "jobs": 1}
+{"time": "2026-10-07 00:14:36", "name": "crazy-white-s11-walk-south-east", "endpoint": "/characters/animations", "usage": {"type": "usd", "usd": 0.014016981230841743}, "seconds": 101.2, "jobs": 1}
+{"time": "2026-10-07 00:16:19", "name": "crazy-white-s11-walk-east", "endpoint": "/characters/animations", "usage": {"type": "usd", "usd": 0.014212534507115682}, "seconds": 103.2, "jobs": 1}
+{"time": "2026-10-07 00:17:58", "name": "crazy-white-s11-walk-north-east", "endpoint": "/characters/animations", "usage": {"type": "usd", "usd": 0.013871859312057495}, "seconds": 98.9, "jobs": 1}
+{"time": "2026-10-07 00:19:44", "name": "crazy-white-s11-walk-north", "endpoint": "/characters/animations", "usage": {"type": "usd", "usd": 0.014182189385096234}, "seconds": 105.3, "jobs": 1}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   RACERS,
   legalSpectatorCells,
@@ -15,6 +15,7 @@ import {
   type RacerId,
   type SpectatorSide,
 } from "@camel/game";
+import { iconArt, ticketArt } from "./art.js";
 import GameRules from "./GameRules.js";
 import Track3D, { DIE_NAMES } from "./Track3D.js";
 import { socket } from "./socket.js";
@@ -36,6 +37,15 @@ interface GameBoardProps {
 export const CAMEL_LABEL: Record<CamelId, string> = {
   red: "红", yellow: "黄", blue: "蓝", green: "绿", purple: "紫", black: "黑", white: "白",
 };
+
+/** 界面小图（金币、票、卡背……）的地址，作为 CSS 变量传给样式表：部署在子路径下也不会找不到图。 */
+const ART_VARS = {
+  "--img-coin": `url(${iconArt.coin})`,
+  "--img-pyramid": `url(${iconArt.pyramidTicket})`,
+  "--img-card-back": `url(${iconArt.cardBack})`,
+  "--img-partner": `url(${iconArt.partner})`,
+  ...Object.fromEntries(RACERS.map((camel) => [`--img-ticket-${camel}`, `url(${ticketArt(camel)})`])),
+} as CSSProperties;
 
 /** 玩家的标识色（观众板名牌、牌堆里的卡），避开骆驼的五种颜色。 */
 const SEAT_COLORS = ["#e8833a", "#3fb6c9", "#d65db1", "#9ccf4a", "#c9a227", "#8f7ad8", "#e05c5c", "#5b8def"];
@@ -174,7 +184,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, chat, onComma
   const myCards = (me?.finishCards ?? []).filter((camel): camel is RacerId => camel !== null);
 
   return (
-    <div className="ct-screen">
+    <div className="ct-screen" style={ART_VARS}>
       <header className="ct-topbar">
         {brand}
         <div className="ct-turn">
@@ -201,6 +211,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, chat, onComma
           walking={playback.walking}
           {...(playback.cheeringAt !== undefined ? { cheeringAt: playback.cheeringAt } : {})}
           {...(playback.dieFx ? { dieFx: playback.dieFx } : {})}
+          {...(playback.dust ? { dust: playback.dust } : {})}
           {...(spectatorCells ? { selectableCells: spectatorCells } : {})}
           onCellClick={(pos) => mode.kind === "spectator" && setMode({ ...mode, pos })}
           pyramidActive={canAct && mode.kind === "none"}
@@ -226,7 +237,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, chat, onComma
 
         <div className="ct-action-grid">
           <div className="ct-action">
-            <h3>掷骰 <small>金字塔里还有 {pyramidLeft} 张票</small></h3>
+            <h3><i className="ct-icon-pyramid" />掷骰 <small>金字塔里还有 {pyramidLeft} 张票</small></h3>
             <button className="primary-button ct-roll" type="button" disabled={!canAct} onClick={() => send({ type: "ROLL" })}>
               拿金字塔票并掷骰 <span>+1 金</span>
             </button>
@@ -234,7 +245,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, chat, onComma
           </div>
 
           <div className="ct-action">
-            <h3>赛段下注 <small>第 1 名得票面，第 2 名 +1，其余 −1</small></h3>
+            <h3>赛段下注 <small>押中第 1 名得票面，第 2 名 +1，其余 −1</small></h3>
             <div className="ct-leg-tickets">
               {RACERS.map((camel) => {
                 const left = game.legTickets[camel];
@@ -243,13 +254,14 @@ function GameBoard({ room, busy, error, notice, brand, connection, chat, onComma
                   <button
                     key={camel}
                     type="button"
-                    className={["ct-ticket-pile", `camel-${camel}`, selected ? "selected" : ""].join(" ")}
+                    className={["ct-ticket-pile", `camel-${camel}`, selected ? "selected" : "", `left-${Math.min(left.length, 4)}`].join(" ")}
                     disabled={!canAct || left.length === 0}
                     onClick={() => setMode({ kind: "legBet", camel })}
                     title={left.length ? `剩 ${left.join("、")}` : "已拿完"}
+                    aria-label={`${CAMEL_LABEL[camel]}色下注票${left.length ? `，最上面一张 ${left[0]} 金，剩 ${left.length} 张` : "，已拿完"}`}
                   >
                     <strong>{left[0] ?? "—"}</strong>
-                    <span>{left.length ? `剩 ${left.length} 张` : "拿完了"}</span>
+                    <span>{left.length ? `剩${left.length}` : "拿完"}</span>
                   </button>
                 );
               })}
@@ -308,7 +320,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, chat, onComma
 
           {game.config.enablePartnership && (
             <div className="ct-action">
-              <h3>合伙 <small>{myPartner ? `本赛段伙伴：${nameOf(myPartner)}` : "结算时额外拿伙伴最好的一张票"}</small></h3>
+              <h3><i className="ct-icon-partner" />合伙 <small>{myPartner ? `本赛段伙伴：${nameOf(myPartner)}` : "结算时额外拿伙伴最好的一张票"}</small></h3>
               <div className="ct-partner-list">
                 {game.players.filter((player) => player.id !== myId).map((player) => (
                   <button
@@ -406,15 +418,15 @@ function PlayerRow({ game, player, me, active, color, online }: { game: GameStat
       <div className="ct-player-head">
         <i className="ct-seat" style={{ background: color }} />
         <strong>{player.name}{me && <small>你</small>}{!online && <small>离线</small>}</strong>
-        <span className="ct-coins" title="金币">{player.coins}</span>
+        <span className="ct-coins" title="金币"><i className="ct-icon-coin" />{player.coins}</span>
       </div>
       <div className="ct-player-items">
         {player.legBets.map((bet, index) => (
           <span key={index} className={`ct-mini-ticket camel-${bet.camel}`} title={`${CAMEL_LABEL[bet.camel]}色 ${bet.value} 金下注票`}>{bet.value}</span>
         ))}
-        {player.pyramidTickets > 0 && <span className="ct-pyramid-count" title="金字塔票">▲×{player.pyramidTickets}</span>}
+        {player.pyramidTickets > 0 && <span className="ct-pyramid-count" title="金字塔票"><i className="ct-icon-pyramid" />×{player.pyramidTickets}</span>}
         {spectator && <span className={`ct-spectator-chip ${spectator.side}`} title="观众板">第{spectator.pos}格{spectator.side === "cheer" ? "+1" : "−1"}</span>}
-        {partner && <span className="ct-partner-chip" title="本赛段伙伴">伙伴 {game.players.find((candidate) => candidate.id === partner)?.name}</span>}
+        {partner && <span className="ct-partner-chip" title="本赛段伙伴"><i className="ct-icon-partner" />{game.players.find((candidate) => candidate.id === partner)?.name}</span>}
         <span className="ct-cards-left" title="手中终局卡 / 已押出">终局卡 {player.finishCards.length} · 已押 {inPiles}</span>
       </div>
     </div>
@@ -543,7 +555,7 @@ function FinalDialog({ game, room, myId, nameOf, onRematch }: { game: GameState;
           {standings.map((player) => (
             <li key={player.id} className={result.winners.includes(player.id) ? "winner" : ""}>
               {result.winners.includes(player.id) ? "🏆 " : ""}{player.name}{player.id === myId ? "（你）" : ""}
-              <span className="ct-coins">{player.coins}</span>
+              <span className="ct-coins"><i className="ct-icon-coin" />{player.coins}</span>
             </li>
           ))}
         </ol>

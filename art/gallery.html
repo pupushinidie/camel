@@ -12,9 +12,12 @@
   h1 { margin: 0 0 4px; color: var(--gold); font-size: 26px; }
   .meta { color: var(--muted); }
   .intro { margin: 12px 0 20px; padding: 12px 16px; background: var(--panel); border-left: 4px solid var(--gold); white-space: pre-line; }
-  .preview { display: grid; gap: 12px; margin-bottom: 28px; }
+  .preview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 28px; }
   .preview figure { margin: 0; padding: 10px; background: var(--panel); }
-  .preview img { width: 100%; display: block; }
+  .preview figure.wide { grid-column: 1 / -1; }
+  .preview img { display: block; max-width: 100%; }
+  .preview figure.wide img { width: 100%; }
+  .preview figure.small img { image-rendering: pixelated; margin: 0 auto; }
   .preview figcaption { margin-top: 6px; color: var(--muted); }
   section.item { margin: 0 0 22px; padding: 16px; background: var(--panel); border: 2px solid var(--rim); }
   section.item.done { border-color: var(--ok); }
@@ -75,6 +78,7 @@
     preview.innerHTML = "";
     for (const shot of data.preview ?? []) {
       const figure = document.createElement("figure");
+      figure.className = shot.src.endsWith(".gif") ? "small" : "wide";
       figure.innerHTML = `<img src="${shot.src}" alt=""><figcaption></figcaption>`;
       figure.querySelector("figcaption").textContent = shot.caption;
       preview.append(figure);
