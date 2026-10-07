@@ -220,6 +220,11 @@ function Track3D(props: Track3DProps) {
       }
       return;
     }
+    // 鼠标键其实已经松开（松开事件丢了，例如在窗口外松手）：当作拖动结束，免得画面一直跟着鼠标转
+    if (event.pointerType === "mouse" && event.buttons === 0) {
+      handlePointerCancel(event);
+      return;
+    }
     pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     const current = gesture.current;
     if (!current) return;
@@ -326,6 +331,7 @@ function Track3D(props: Track3DProps) {
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
+      onLostPointerCapture={handlePointerCancel}
       onPointerLeave={() => setHoverCell(null)}
       onContextMenu={(event) => event.preventDefault()}
       style={{ "--unit": `${unit}px` } as CSSProperties}

@@ -1,5 +1,5 @@
 {
-  "_说明": "第一轮他在画廊里定的（camel 等）+ 第二轮我推荐、他还没看过的（标 r2）。路径相对 art/out/。",
+  "_说明": "他在画廊里定的选择，路径相对 art/out/。终点拱门第三轮按他的意见（黑白太生硬）重画，暂用我推荐的 arch-check-c1。",
   "camel": "style/camelB-red",
   "tile": "style/ground/tile2-c1.png",
   "sand": "style/ground/sand-c2.png",
@@ -18,12 +18,12 @@
   "flag": "r2/props/flag-c1.png",
   "brazier": "r2/props/brazier-c1.png",
   "obelisk": "r2/props/obelisk-c1.png",
-  "arch": "r2/props/arch-c1.png",
+  "arch": "r3/arch-check-c1.png",
   "coin": "r2/props/coin-c1.png",
   "pyramid-ticket": "r2/props/pyramid-ticket-c1.png",
   "ticket": "r2/props/ticket-c3.png",
   "card-back": "r2/props/card-back-c2.png",
   "partner": "r2/props/partner-c2.png",
   "backdrop-原图": "r2/props/backdrop-c2.png",
-  "hero": "r2/props/hero-c2.png"
+  "hero": "r2/props/hero-c1.png"
 }

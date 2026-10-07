@@ -89,3 +89,7 @@
 {"time": "2026-10-07 00:16:19", "name": "crazy-white-s11-walk-east", "endpoint": "/characters/animations", "usage": {"type": "usd", "usd": 0.014212534507115682}, "seconds": 103.2, "jobs": 1}
 {"time": "2026-10-07 00:17:58", "name": "crazy-white-s11-walk-north-east", "endpoint": "/characters/animations", "usage": {"type": "usd", "usd": 0.013871859312057495}, "seconds": 98.9, "jobs": 1}
 {"time": "2026-10-07 00:19:44", "name": "crazy-white-s11-walk-north", "endpoint": "/characters/animations", "usage": {"type": "usd", "usd": 0.014182189385096234}, "seconds": 105.3, "jobs": 1}
+{"time": "2026-10-07 08:33:55", "name": "arch-check-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007248268948660957}, "seconds": 26.2}
+{"time": "2026-10-07 08:34:32", "name": "arch-check-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.006991383711496989}, "seconds": 37.7}
+{"time": "2026-10-07 08:35:24", "name": "arch-stripe-c1", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.008385083304511176}, "seconds": 51.9}
+{"time": "2026-10-07 08:36:06", "name": "arch-stripe-c2", "endpoint": "/create-image-pixflux", "usage": {"type": "usd", "usd": 0.007305972284740872}, "seconds": 41.5}

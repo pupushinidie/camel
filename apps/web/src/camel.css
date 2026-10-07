@@ -137,9 +137,11 @@
 }
 .ct-tile.hover { filter: brightness(1.18); }
 .ct-tile.hover::after { box-shadow: inset 0 0 0 calc(var(--unit) * 0.07) #fff2b8; animation: none; }
+/* 终点线：米色和深赭的方格（纯黑白太刺眼），外圈一道深色描边 */
 .ct-finish {
   position: absolute;
-  background: repeating-conic-gradient(#f4f0e6 0 25%, #1c1714 0 50%) 0 0 / calc(var(--unit) * 0.14) calc(var(--unit) * 0.14);
+  background: repeating-conic-gradient(#efe0bc 0 25%, #6a3a24 0 50%) 0 0 / calc(var(--unit) * 0.14) calc(var(--unit) * 0.14);
+  box-shadow: 0 0 0 calc(var(--unit) * 0.02) #3b2216;
   image-rendering: pixelated;
 }
 .ct-spectator-pad {

@@ -133,14 +133,36 @@ def round2() -> dict:
     }
 
 
-ROUNDS = {"r1": round1, "r2": round2}
+def round3() -> dict:
+    """第三轮：终点拱门按他的意见（黑白的线太生硬）重画。"""
+    sources = [
+        ("arch-check-c1", "r3/arch-check-c1.png", "米色 + 浅橙方格旗布，保留终点方格的意思（现在用的）"),
+        ("arch-check-c2", "r3/arch-check-c2.png", "条纹旗布，柱子偏暗"),
+        ("arch-stripe-c1", "r3/arch-stripe-c1.png", "红黄条纹 + 流苏"),
+        ("arch-stripe-c2", "r3/arch-stripe-c2.png", "深红挂布 + 金边"),
+        ("arch-warm-c1", "r3/arch-warm-c1.png", "原来那张，黑白方格换成深赭和米色"),
+    ]
+    return {
+        "round": "r3",
+        "title": "沙丘赛驼 · 第三轮：终点拱门重画",
+        "updated": time.strftime("%m-%d %H:%M"),
+        "spent": pixellab.spent_usd(),
+        "intro": ("你说终点拱门「黑白的线太生硬」。我理解成黑白方格太刺眼：拱门横幅重画成暖色，"
+                  "地面上的终点线也从纯黑白改成了米色 + 深赭。上面是现在的样子（用的 arch-check-c1）。\n"
+                  "如果你指的只是其中一处，或者想要别的样子，在备注里说。"),
+        "preview": [{"src": "r3/shots/arch-check-c1.png", "caption": "现在的终点：arch-check-c1 + 米色深赭的终点线"}],
+        "items": [image_item("arch", "终点拱门", "", sources, "arch-check-c1", scale=3)],
+    }
+
+
+ROUNDS = {"r1": round1, "r2": round2, "r3": round3}
 
 
 if __name__ == "__main__":
     import sys
 
     OUT.mkdir(parents=True, exist_ok=True)
-    build_round = ROUNDS[sys.argv[1] if len(sys.argv) > 1 else "r2"]
+    build_round = ROUNDS[sys.argv[1] if len(sys.argv) > 1 else "r3"]
     (OUT / "gallery.json").write_text(json.dumps(build_round(), ensure_ascii=False, indent=1))
     shutil.copyfile(ART / "gallery.html", OUT / "gallery.html")
     print("gallery ok, spent", round(pixellab.spent_usd(), 4))
