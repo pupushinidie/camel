@@ -17,6 +17,7 @@ import {
 } from "@camel/game";
 import { iconArt, ticketArt } from "./art.js";
 import GameRules from "./GameRules.js";
+import { GameRoomMenu, SpectateBar } from "./RoomExtras.js";
 import Track3D, { DIE_NAMES } from "./Track3D.js";
 import { socket } from "./socket.js";
 import { usePlayback } from "./usePlayback.js";
@@ -34,6 +35,11 @@ interface GameBoardProps {
   readonly onCommand: (command: GameCommand) => void;
   readonly onRematch: (accept: boolean) => void;
   readonly onDissolve: () => void;
+  /** 观战时从这位玩家的座位看。 */
+  readonly watchId: string;
+  readonly onWatch: (playerId: string) => void;
+  /** 观战的人离开。 */
+  readonly onLeave: () => void;
 }
 
 export const CAMEL_LABEL: Record<CamelId, string> = {
@@ -110,20 +116,23 @@ function describeEvent(event: GameEvent, name: (id: string) => string, myId: str
   }
 }
 
-function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, chat, onCommand, onRematch, onDissolve }: GameBoardProps) {
+function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, chat, onCommand, onRematch, onDissolve, watchId, onWatch, onLeave }: GameBoardProps) {
   const game = room.game!;
   const member = room.members.find((candidate) => candidate.id === socket.id);
-  const myId = member?.playerId ?? "";
+  // 观战的人没有座位：牌桌按 watchId 那位玩家的座位摆（me 就是他），但什么都不能点，也不叫「你」。
+  const spectating = !member;
+  const myId = member?.playerId ?? watchId;
+  const selfId = spectating ? "" : myId;
   const isHost = member?.isHost ?? false;
   const me = game.players.find((player) => player.id === myId);
   const current = game.players[game.currentPlayer];
-  const myTurn = game.phase === "playing" && current?.id === myId;
+  const myTurn = !spectating && game.phase === "playing" && current?.id === myId;
   const secondsLeft = useCountdown(room);
   const playback = usePlayback(game);
   const animating = playback.settledVersion !== game.version;
 
   const seatColor = (playerId: string) => SEAT_COLORS[Math.max(0, game.players.findIndex((player) => player.id === playerId)) % SEAT_COLORS.length]!;
-  const nameOf = (playerId: string) => (playerId === myId ? "你" : game.players.find((player) => player.id === playerId)?.name ?? "?");
+  const nameOf = (playerId: string) => (playerId === selfId ? "你" : game.players.find((player) => player.id === playerId)?.name ?? "?");
   const connected = (playerId: string) => room.members.find((candidate) => candidate.playerId === playerId)?.connected ?? false;
 
   const [mode, setMode] = useState<Mode>({ kind: "none" });
@@ -137,7 +146,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
     if (game.version === loggedVersion.current) return;
     loggedVersion.current = game.version;
     const lines = game.events
-      .map((event, index) => ({ key: `${game.version}-${index}`, text: describeEvent(event, nameOf, myId) }))
+      .map((event, index) => ({ key: `${game.version}-${index}`, text: describeEvent(event, nameOf, selfId) }))
       .filter((line): line is { key: string; text: string } => line.text !== null);
     setLog((previous) => [...lines.reverse(), ...previous].slice(0, 40));
   }, [game.version]);
@@ -202,6 +211,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
         <div className="ct-topbar-right">
           {themeToggle}
           <GameRules />
+          <GameRoomMenu room={room} />
           {isHost && <button className="quiet-button danger" type="button" onClick={onDissolve}>解散</button>}
           {connection}
         </div>
@@ -221,7 +231,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
           onPyramidClick={() => send({ type: "ROLL" })}
           ownerName={nameOf}
           ownerColor={seatColor}
-          myId={myId}
+          myId={selfId}
           overlay={<RankingStrip stacks={playback.stacks} />}
         />
       </section>
@@ -289,7 +299,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
           </div>
 
           <div className="ct-action">
-            <h3>终局下注 <small>猜最终冠军 / 垫底，越早押越值钱</small></h3>
+            <h3>终局下注 <small>{spectating ? (room.access.spectatorsSeeAll ? `${me?.name ?? ""}手里还没押的终局卡` : "观战看不到手里的终局卡") : "猜最终冠军 / 垫底，越早押越值钱"}</small></h3>
             <div className="ct-finish-cards">
               {RACERS.map((camel) => {
                 const has = myCards.includes(camel);
@@ -343,8 +353,9 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
       </section>
 
       <aside className="ct-side">
-        <Players game={game} myId={myId} seatColor={seatColor} connected={connected} />
-        <OverallPiles game={game} myId={myId} nameOf={nameOf} seatColor={seatColor} />
+        {spectating && <SpectateBar room={room} watchId={myId} onWatch={onWatch} onLeave={onLeave} />}
+        <Players game={game} myId={selfId} seatColor={seatColor} connected={connected} />
+        <OverallPiles game={game} myId={selfId} nameOf={nameOf} seatColor={seatColor} />
         <section className="ct-panel ct-log">
           <h3>动作记录</h3>
           {log.length === 0 ? <p className="ct-muted">还没有动作。</p> : (
@@ -355,7 +366,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
       </aside>
 
       {legPopup && <LegResultDialog result={legPopup} nameOf={nameOf} onClose={() => setLegShown(game.legResults.length)} />}
-      {game.phase === "finished" && !animating && <FinalDialog game={game} room={room} myId={myId} nameOf={nameOf} onRematch={onRematch} />}
+      {game.phase === "finished" && !animating && <FinalDialog game={game} room={room} myId={selfId} nameOf={nameOf} spectating={spectating} onRematch={onRematch} onLeave={onLeave} />}
     </div>
   );
 }
@@ -520,7 +531,15 @@ function PayoutTable({ result, nameOf }: { result: LegResult; nameOf: (id: strin
 
 // ---------- 终局 ----------
 
-function FinalDialog({ game, room, myId, nameOf, onRematch }: { game: GameState; room: LobbyRoomSnapshot; myId: string; nameOf: (id: string) => string; onRematch: (accept: boolean) => void }) {
+function FinalDialog({ game, room, myId, nameOf, spectating, onRematch, onLeave }: {
+  game: GameState;
+  room: LobbyRoomSnapshot;
+  myId: string;
+  nameOf: (id: string) => string;
+  spectating: boolean;
+  onRematch: (accept: boolean) => void;
+  onLeave: () => void;
+}) {
   const result = game.finalResult!;
   const lastLeg = game.legResults.at(-1);
   const accepted = room.rematch?.acceptedIds.includes(socket.id ?? "") ?? false;
@@ -562,7 +581,14 @@ function FinalDialog({ game, room, myId, nameOf, onRematch }: { game: GameState;
             </li>
           ))}
         </ol>
-        {room.rematch && (
+        {spectating ? (
+          <div className="ct-rematch">
+            <span>{room.rematch ? `等玩家决定要不要再来一局（${room.rematch.acceptedIds.length}/${room.members.length} 人同意）` : "对局结束"}</span>
+            <div className="gm-panel-actions">
+              <button className="quiet-button" type="button" onClick={onLeave}>离开观战</button>
+            </div>
+          </div>
+        ) : room.rematch && (
           <div className="ct-rematch">
             <span>再来一局？还剩 {Math.ceil(room.rematch.remainingMs / 1000)} 秒（{room.rematch.acceptedIds.length}/{room.members.length} 人同意）</span>
             <div className="gm-panel-actions">
