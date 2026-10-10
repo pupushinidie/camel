@@ -459,3 +459,7 @@
 .app-shell .ct-rematch .gm-panel-actions { align-items: center; }
 .app-shell .ct-rematch .quiet-button { flex: 0 0 auto; white-space: nowrap; }
 .app-shell .ct-rematch .primary-button { flex: 1 1 auto; margin: 0; }
+
+/* 人机和托管的标签 */
+.ct-player-head small.ct-bot-tag { padding: 0 4px; color: #d8e8ff; background: #2a62c0; }
+.ct-player-head small.ct-auto-tag { padding: 0 4px; color: #1a1206; background: var(--gold); }

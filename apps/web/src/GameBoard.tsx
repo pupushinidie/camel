@@ -34,6 +34,8 @@ interface GameBoardProps {
   readonly chat: ReactNode;
   readonly onCommand: (command: GameCommand) => void;
   readonly onRematch: (accept: boolean) => void;
+  /** 打开 / 取消自己的托管（人机代打）。 */
+  readonly onAuto: (enabled: boolean) => void;
   readonly onDissolve: () => void;
   /** 观战时从这位玩家的座位看。 */
   readonly watchId: string;
@@ -116,7 +118,7 @@ function describeEvent(event: GameEvent, name: (id: string) => string, myId: str
   }
 }
 
-function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, chat, onCommand, onRematch, onDissolve, watchId, onWatch, onLeave }: GameBoardProps) {
+function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, chat, onCommand, onRematch, onAuto, onDissolve, watchId, onWatch, onLeave }: GameBoardProps) {
   const game = room.game!;
   const member = room.members.find((candidate) => candidate.id === socket.id);
   // 观战的人没有座位：牌桌按 watchId 那位玩家的座位摆（me 就是他），但什么都不能点，也不叫「你」。
@@ -134,6 +136,11 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
   const seatColor = (playerId: string) => SEAT_COLORS[Math.max(0, game.players.findIndex((player) => player.id === playerId)) % SEAT_COLORS.length]!;
   const nameOf = (playerId: string) => (playerId === selfId ? "你" : game.players.find((player) => player.id === playerId)?.name ?? "?");
   const connected = (playerId: string) => room.members.find((candidate) => candidate.playerId === playerId)?.connected ?? false;
+  const seatFlags = (playerId: string) => {
+    const seat = room.members.find((candidate) => candidate.playerId === playerId);
+    return { bot: seat?.bot === true, auto: seat?.auto === true };
+  };
+  const autoOn = member?.auto === true && game.phase === "playing";
 
   const [mode, setMode] = useState<Mode>({ kind: "none" });
   // 换人或状态更新后，未确认的选择作废
@@ -172,6 +179,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
 
   let prompt = "";
   if (game.phase === "finished") prompt = "比赛结束";
+  else if (autoOn) prompt = myTurn ? "托管中：人机正在替你行动" : "托管中：轮到你时由人机代打";
   else if (!myTurn) prompt = `等待 ${current?.name ?? ""} 行动`;
   else if (mode.kind === "spectator") prompt = mode.pos ? `把观众板（${mode.side === "cheer" ? "欢呼 +1" : "嘘 −1"}）放在第 ${mode.pos} 格？` : "点亮的格子可以放观众板";
   else if (mode.kind === "legBet") prompt = `拿${CAMEL_LABEL[mode.camel]}色 ${game.legTickets[mode.camel][0]} 金下注票？`;
@@ -239,7 +247,12 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
       <section className={myTurn ? "ct-actions mine" : "ct-actions"} aria-live="polite">
         <div className="ct-prompt">
           <span>{prompt}</span>
-          {myTurn && mode.kind !== "none" && (
+          {autoOn && (
+            <span className="ct-prompt-buttons">
+              <button className="primary-button auto-cancel" type="button" disabled={busy} onClick={() => onAuto(false)} data-tutorial="cancel-auto">取消托管</button>
+            </span>
+          )}
+          {myTurn && !autoOn && mode.kind !== "none" && (
             <span className="ct-prompt-buttons">
               <button className="quiet-button" type="button" onClick={() => setMode({ kind: "none" })}>取消</button>
               <button className="primary-button" type="button" disabled={!ready || busy} onClick={confirm}>确定</button>
@@ -354,7 +367,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
 
       <aside className="ct-side">
         {spectating && <SpectateBar room={room} watchId={myId} onWatch={onWatch} onLeave={onLeave} />}
-        <Players game={game} myId={selfId} seatColor={seatColor} connected={connected} />
+        <Players game={game} myId={selfId} seatColor={seatColor} connected={connected} seatFlags={seatFlags} />
         <OverallPiles game={game} myId={selfId} nameOf={nameOf} seatColor={seatColor} />
         <section className="ct-panel ct-log">
           <h3>动作记录</h3>
@@ -408,18 +421,18 @@ function DiceTray({ game }: { game: GameState }) {
 
 // ---------- 玩家 ----------
 
-function Players({ game, myId, seatColor, connected }: { game: GameState; myId: string; seatColor: (id: string) => string; connected: (id: string) => boolean }) {
+function Players({ game, myId, seatColor, connected, seatFlags }: { game: GameState; myId: string; seatColor: (id: string) => string; connected: (id: string) => boolean; seatFlags: (id: string) => { bot: boolean; auto: boolean } }) {
   return (
     <section className="ct-panel ct-players">
       <h3>玩家</h3>
       {game.players.map((player, index) => (
-        <PlayerRow key={player.id} game={game} player={player} me={player.id === myId} active={game.phase === "playing" && game.currentPlayer === index} color={seatColor(player.id)} online={connected(player.id)} />
+        <PlayerRow key={player.id} game={game} player={player} me={player.id === myId} active={game.phase === "playing" && game.currentPlayer === index} color={seatColor(player.id)} online={connected(player.id)} {...seatFlags(player.id)} />
       ))}
     </section>
   );
 }
 
-function PlayerRow({ game, player, me, active, color, online }: { game: GameState; player: Player; me: boolean; active: boolean; color: string; online: boolean }) {
+function PlayerRow({ game, player, me, active, color, online, bot, auto }: { game: GameState; player: Player; me: boolean; active: boolean; color: string; online: boolean; bot: boolean; auto: boolean }) {
   const spectator = game.spectators.find((candidate) => candidate.owner === player.id);
   const partner = game.partners[player.id];
   const inPiles = game.winnerPile.filter((card) => card.owner === player.id).length + game.loserPile.filter((card) => card.owner === player.id).length;
@@ -431,7 +444,7 @@ function PlayerRow({ game, player, me, active, color, online }: { game: GameStat
     <div className={classes.join(" ")}>
       <div className="ct-player-head">
         <i className="ct-seat" style={{ background: color }} />
-        <strong>{player.name}{me && <small>你</small>}{!online && <small>离线</small>}</strong>
+        <strong>{player.name}{me && <small>你</small>}{bot && <small className="ct-bot-tag">人机</small>}{auto && <small className="ct-auto-tag">托管</small>}{!online && !bot && <small>离线</small>}</strong>
         <span className="ct-coins" title="金币"><i className="ct-icon-coin" />{player.coins}</span>
       </div>
       <div className="ct-player-items">
