@@ -389,7 +389,7 @@ function Track3D(props: Track3DProps) {
           })}
 
           {/* 终点线：第 16 格和第 1 格之间，画在石板上面 */}
-          <div className="ct-finish" style={{ left: px(MARGIN), top: px(MARGIN + 1) - px(0.07), width: px(1), height: px(0.14), transform: `translateZ(${px(TILE_LIFT) + 1}px)` }} />
+          <div className="ct-finish" data-tutorial="finish-line" style={{ left: px(MARGIN), top: px(MARGIN + 1) - px(0.07), width: px(1), height: px(0.14), transform: `translateZ(${px(TILE_LIFT) + 1}px)` }} />
 
           {/* 观众板落在石板上的底座：俯视时也看得出是哪一面、谁的 */}
           {spectators.map((spectator) => {
@@ -405,7 +405,7 @@ function Track3D(props: Track3DProps) {
 
           {/* 金字塔：影子、底座、四个三角面（顶上一截金色，南面有门） */}
           <div className="ct-pyramid-shadow" style={{ left: px(shadowBox.left), top: px(shadowBox.top), width: px(shadowBox.size), height: px(shadowBox.size), clipPath: pyramidShadow, transform: `translateZ(${px(TILE_LIFT) + 2}px)` }} />
-          <div className="ct-platform-top" style={{ left: px(center - PLATFORM / 2), top: px(center - PLATFORM / 2), width: px(PLATFORM), height: px(PLATFORM), transform: `translateZ(${px(PLATFORM_HEIGHT)}px)`, backgroundImage: `url(${groundArt.brick})`, backgroundSize: `${px(0.5)}px ${px(0.5)}px` }} />
+          <div className="ct-platform-top" data-tutorial="pyramid" style={{ left: px(center - PLATFORM / 2), top: px(center - PLATFORM / 2), width: px(PLATFORM), height: px(PLATFORM), transform: `translateZ(${px(PLATFORM_HEIGHT)}px)`, backgroundImage: `url(${groundArt.brick})`, backgroundSize: `${px(0.5)}px ${px(0.5)}px` }} />
           {[0, 1, 2, 3].map((side) => (
             <div
               key={`platform-${side}`}

@@ -28,7 +28,7 @@ interface StepBase {
   readonly noteTouch?: string;
   /**
    * 高亮哪个元素：网页里 data-tutorial 的值。
-   * 固定的有 track、ranking、roll、players、piles、confirm；一类里的某一个带参数：
+   * 固定的有 track、pyramid、finish-line、ranking、roll、players、piles、confirm；一类里的某一个带参数：
    * cell:<格>、camel:<颜色>、player:<座位>、bet:<颜色>、spectator:cheer|boo、finish:<颜色>、pile:winner|loser。
    */
   readonly anchor?: string;
@@ -58,7 +58,7 @@ export const TUTORIAL_RIVALS = [
 
 export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   {
-    kind: "info", id: "goal", lesson: "目标", anchor: "track",
+    kind: "info", id: "goal", lesson: "目标", anchor: "pyramid",
     say: "五只赛驼要绕金字塔跑一圈，你不操控骆驼，只押谁跑得好。",
     note: "比赛结束时金币最多的人赢。每人开局 3 枚金币。",
   },
@@ -133,7 +133,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     moves: [{ type: "ROLL" }],
   },
   {
-    kind: "info", id: "legscore", lesson: "赛段结算", anchor: "players", face: "happy",
+    kind: "info", id: "legscore", lesson: "赛段结算", anchor: `player:${TUTORIAL_SELF}`, face: "happy",
     say: "赛段结算：红第 1，你的 5 元票 +5，金字塔票 +1。",
     note: "咕噜一号的 3 元票也赢了。骆驼留在原地，下注票、骰子、观众板都收回，开始下一段。",
   },
@@ -147,7 +147,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     note: "猜中的按先后拿 8、5、3、2、1 金，猜错 −1。越早押越值钱，也越难猜。",
   },
   {
-    kind: "info", id: "end", lesson: "终局", anchor: "track", face: "think",
+    kind: "info", id: "end", lesson: "终局", anchor: "finish-line", face: "think",
     say: "有骆驼冲过终点线，比赛立刻结束。",
     note: "先结算这一段，再翻开冠军和垫底牌堆，最后金币最多的人赢。",
   },
@@ -258,6 +258,8 @@ export function anchorVisible(state: GameState, anchor: string, viewer: string):
   const [kind, arg] = anchor.split(":") as [string, string | undefined];
   switch (kind) {
     case "track":
+    case "pyramid":
+    case "finish-line":
     case "ranking":
     case "players":
     case "piles":
