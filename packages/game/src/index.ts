@@ -42,3 +42,16 @@ export type {
   VoiceParticipant,
   VoiceSignal,
 } from "./roomTypes.js";
+export {
+  anchorVisible,
+  createPracticeGame,
+  createTutorialGame,
+  createTutorialRng,
+  sameCommand,
+  TUTORIAL_ROLLS,
+  TUTORIAL_RIVALS,
+  TUTORIAL_SELF,
+  TUTORIAL_STACKS,
+  TUTORIAL_STEPS,
+} from "./tutorial.js";
+export type { ScriptedRoll, TutorialFace, TutorialFollowUp, TutorialRng, TutorialStep } from "./tutorial.js";
