@@ -21,6 +21,9 @@ import { GameRoomMenu, SpectateBar } from "./RoomExtras.js";
 import Track3D, { DIE_NAMES } from "./Track3D.js";
 import { socket } from "./socket.js";
 import { usePlayback } from "./usePlayback.js";
+import { Coach, TipToast } from "./tutorial/Coach.js";
+import { useFirstTimeTips } from "./tutorial/tips.js";
+import { detectTips, GAME_ID, hintFor, TIPS, type Hint } from "./tutorialGame.js";
 
 interface GameBoardProps {
   readonly room: LobbyRoomSnapshot;
@@ -42,6 +45,18 @@ interface GameBoardProps {
   readonly onWatch: (playerId: string) => void;
   /** 观战的人离开。 */
   readonly onLeave: () => void;
+  /** 自己在 room.members 里的 id；默认是 socket.id，教程里传固定值。 */
+  readonly selfMemberId?: string;
+  /**
+   * online：真实对局（默认）；
+   * tutorial：新手教程的剧本进行中（咕噜嘎在讲，不出提示、小贴士和赛段结算弹窗）；
+   * practice：教程后的练习局（随时能看提示）。
+   */
+  readonly mode?: "online" | "tutorial" | "practice";
+  /** 结算框里替代「再来一局」的按钮（练习局用）。 */
+  readonly finalActions?: ReactNode;
+  /** 界面上「先选再确定」的当前选择（教程按它移动高亮），例如 legBet:red、spectator:cheer:5、overall:red:winner。 */
+  readonly onSelection?: (selection: string) => void;
 }
 
 export const CAMEL_LABEL: Record<CamelId, string> = {
@@ -118,9 +133,9 @@ function describeEvent(event: GameEvent, name: (id: string) => string, myId: str
   }
 }
 
-function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, chat, onCommand, onRematch, onAuto, onDissolve, watchId, onWatch, onLeave }: GameBoardProps) {
+function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, chat, onCommand, onRematch, onAuto, onDissolve, watchId, onWatch, onLeave, selfMemberId, mode: boardMode = "online", finalActions, onSelection }: GameBoardProps) {
   const game = room.game!;
-  const member = room.members.find((candidate) => candidate.id === socket.id);
+  const member = room.members.find((candidate) => candidate.id === (selfMemberId ?? socket.id));
   // 观战的人没有座位：牌桌按 watchId 那位玩家的座位摆（me 就是他），但什么都不能点，也不叫「你」。
   const spectating = !member;
   const myId = member?.playerId ?? watchId;
@@ -145,6 +160,32 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
   const [mode, setMode] = useState<Mode>({ kind: "none" });
   // 换人或状态更新后，未确认的选择作废
   useEffect(() => setMode({ kind: "none" }), [game.version]);
+  const selection =
+    mode.kind === "legBet" ? `legBet:${mode.camel}`
+    : mode.kind === "spectator" ? `spectator:${mode.side}${mode.pos !== undefined ? `:${mode.pos}` : ""}`
+    : mode.kind === "overall" ? `overall:${mode.camel ?? ""}${mode.pile ? `:${mode.pile}` : ""}`
+    : mode.kind === "partner" ? `partner${mode.target ? `:${mode.target}` : ""}`
+    : "none";
+  useEffect(() => onSelection?.(selection), [selection]);
+
+  // 「提示」：只有自己和人机时（练习局，或一个人加人机开的房间）；让人机从你的位置算一步
+  const autoPlaying = member?.auto === true;
+  const botsOnly = room.members.every((candidate) => candidate.id === member?.id || candidate.bot);
+  const canHint = !spectating && !autoPlaying && myTurn && (boardMode === "practice" || (boardMode === "online" && botsOnly));
+  const [hint, setHint] = useState<{ version: number; hint: Hint } | null>(null);
+  const shownHint = hint && hint.version === game.version && canHint ? hint.hint : null;
+  const toggleHint = () => setHint((current) => (current && current.version === game.version ? null : { version: game.version, hint: hintFor(game, myId) }));
+  useEffect(() => {
+    if (!canHint) return;
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+      if (event.key.toLowerCase() === "h") toggleHint();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canHint, game.version]);
+  const tips = useFirstTimeTips(GAME_ID, game.version, () => detectTips(game, myId), TIPS, boardMode === "online" && !spectating);
 
   // 动作记录：只在本页面累计，重连后从头记
   const [log, setLog] = useState<{ key: string; text: string }[]>([]);
@@ -161,7 +202,11 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
   // 赛段结算弹窗：动画播完后弹出最新一次结算
   const [legShown, setLegShown] = useState(game.legResults.length);
   const latestLeg = game.legResults.at(-1);
-  const legPopup = !animating && game.phase === "playing" && latestLeg && legShown < game.legResults.length ? latestLeg : undefined;
+  const legPopup = boardMode !== "tutorial" && !animating && game.phase === "playing" && latestLeg && legShown < game.legResults.length ? latestLeg : undefined;
+  // 教程剧本里由咕噜嘎讲结算，不弹窗；也不留到练习局再弹
+  useEffect(() => {
+    if (boardMode === "tutorial") setLegShown(game.legResults.length);
+  }, [boardMode, game.legResults.length]);
 
   const spectatorCells = useMemo(
     () => (myTurn && mode.kind === "spectator" ? new Set(legalSpectatorCells(game, myId)) : undefined),
@@ -225,7 +270,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
         </div>
       </header>
 
-      <section className="ct-board-area">
+      <section className="ct-board-area" data-tutorial="track">
         <Track3D
           stacks={playback.stacks}
           spectators={playback.spectators}
@@ -247,6 +292,11 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
       <section className={myTurn ? "ct-actions mine" : "ct-actions"} aria-live="polite">
         <div className="ct-prompt">
           <span>{prompt}</span>
+          {canHint && (
+            <span className="ct-prompt-buttons">
+              <button className={shownHint ? "quiet-button ct-hint on" : "quiet-button ct-hint"} type="button" data-tutorial="hint" onClick={toggleHint}>提示</button>
+            </span>
+          )}
           {autoOn && (
             <span className="ct-prompt-buttons">
               <button className="primary-button auto-cancel" type="button" disabled={busy} onClick={() => onAuto(false)} data-tutorial="cancel-auto">取消托管</button>
@@ -255,7 +305,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
           {myTurn && !autoOn && mode.kind !== "none" && (
             <span className="ct-prompt-buttons">
               <button className="quiet-button" type="button" onClick={() => setMode({ kind: "none" })}>取消</button>
-              <button className="primary-button" type="button" disabled={!ready || busy} onClick={confirm}>确定</button>
+              <button className="primary-button" type="button" disabled={!ready || busy} onClick={confirm} data-tutorial="confirm">确定</button>
             </span>
           )}
         </div>
@@ -264,7 +314,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
         <div className="ct-action-grid">
           <div className="ct-action">
             <h3><i className="ct-icon-pyramid" />掷骰 <small>金字塔里还有 {pyramidLeft} 张票</small></h3>
-            <button className="primary-button ct-roll" type="button" disabled={!canAct} onClick={() => send({ type: "ROLL" })}>
+            <button className="primary-button ct-roll" type="button" disabled={!canAct} onClick={() => send({ type: "ROLL" })} data-tutorial="roll">
               拿金字塔票并掷骰 <span>+1 金</span>
             </button>
             <DiceTray game={game} />
@@ -283,6 +333,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
                     className={["ct-ticket-pile", `camel-${camel}`, selected ? "selected" : "", `left-${Math.min(left.length, 4)}`].join(" ")}
                     disabled={!canAct || left.length === 0}
                     onClick={() => setMode({ kind: "legBet", camel })}
+                    data-tutorial={`bet:${camel}`}
                     title={left.length ? `剩 ${left.join("、")}` : "已拿完"}
                     aria-label={`${CAMEL_LABEL[camel]}色下注票${left.length ? `，最上面一张 ${left[0]} 金，剩 ${left.length} 张` : "，已拿完"}`}
                   >
@@ -304,6 +355,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
                   className={mode.kind === "spectator" && mode.side === side ? "selected" : ""}
                   disabled={!canAct}
                   onClick={() => setMode({ kind: "spectator", side })}
+                  data-tutorial={`spectator:${side}`}
                 >
                   {side === "cheer" ? "欢呼：再进 1 格" : "嘘：退 1 格"}
                 </button>
@@ -324,6 +376,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
                     className={["ct-finish-card", `camel-${camel}`, selected ? "selected" : "", has ? "" : "used"].join(" ")}
                     disabled={!canAct || !has}
                     onClick={() => setMode({ kind: "overall", camel, ...(mode.kind === "overall" && mode.pile ? { pile: mode.pile } : {}) })}
+                    data-tutorial={`finish:${camel}`}
                     aria-label={`${CAMEL_LABEL[camel]}色终局卡${has ? "" : "（已押出）"}`}
                   />
                 );
@@ -337,6 +390,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
                   className={mode.kind === "overall" && mode.pile === pile ? "selected" : ""}
                   disabled={!canAct || myCards.length === 0}
                   onClick={() => setMode({ kind: "overall", pile, ...(mode.kind === "overall" && mode.camel ? { camel: mode.camel } : {}) })}
+                  data-tutorial={`pile:${pile}`}
                 >
                   {pile === "winner" ? "押冠军" : "押垫底"}
                 </button>
@@ -355,6 +409,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
                     className={mode.kind === "partner" && mode.target === player.id ? "selected" : ""}
                     disabled={!canAct || Boolean(myPartner) || Boolean(game.partners[player.id])}
                     onClick={() => setMode({ kind: "partner", target: player.id })}
+                    data-tutorial={`partner:${player.id}`}
                   >
                     {player.name}{game.partners[player.id] ? "（已结伴）" : ""}
                   </button>
@@ -379,7 +434,22 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
       </aside>
 
       {legPopup && <LegResultDialog result={legPopup} nameOf={nameOf} onClose={() => setLegShown(game.legResults.length)} />}
-      {game.phase === "finished" && !animating && <FinalDialog game={game} room={room} myId={selfId} nameOf={nameOf} spectating={spectating} onRematch={onRematch} onLeave={onLeave} />}
+      {game.phase === "finished" && !animating && <FinalDialog game={game} room={room} myId={selfId} nameOf={nameOf} spectating={spectating} onRematch={onRematch} onLeave={onLeave} actions={finalActions} />}
+      {shownHint && (
+        <Coach
+          bubble
+          view={{
+            key: `hint-${game.version}`,
+            say: shownHint.say,
+            ...(shownHint.note ? { note: shownHint.note } : {}),
+            anchor: shownHint.anchor,
+            focus: false,
+            face: "think",
+            actions: <button className="quiet-button" type="button" onClick={() => setHint(null)}>知道了</button>,
+          }}
+        />
+      )}
+      {tips.tip && <TipToast tip={tips.tip} onClose={tips.dismiss} onNever={tips.never} />}
     </div>
   );
 }
@@ -389,7 +459,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
 function RankingStrip({ stacks }: { stacks: Record<number, CamelId[]> }) {
   const ranking = rankRacers(stacks);
   return (
-    <div className="ct-ranking" aria-label="当前名次">
+    <div className="ct-ranking" aria-label="当前名次" data-tutorial="ranking">
       {ranking.map((camel, index) => (
         <span key={camel} className={`ct-rank camel-${camel}`}>
           <b>{index + 1}</b>{CAMEL_LABEL[camel]}
@@ -423,7 +493,7 @@ function DiceTray({ game }: { game: GameState }) {
 
 function Players({ game, myId, seatColor, connected, seatFlags }: { game: GameState; myId: string; seatColor: (id: string) => string; connected: (id: string) => boolean; seatFlags: (id: string) => { bot: boolean; auto: boolean } }) {
   return (
-    <section className="ct-panel ct-players">
+    <section className="ct-panel ct-players" data-tutorial="players">
       <h3>玩家</h3>
       {game.players.map((player, index) => (
         <PlayerRow key={player.id} game={game} player={player} me={player.id === myId} active={game.phase === "playing" && game.currentPlayer === index} color={seatColor(player.id)} online={connected(player.id)} {...seatFlags(player.id)} />
@@ -441,7 +511,7 @@ function PlayerRow({ game, player, me, active, color, online, bot, auto }: { gam
   if (me) classes.push("me");
   if (!online) classes.push("offline");
   return (
-    <div className={classes.join(" ")}>
+    <div className={classes.join(" ")} data-tutorial={`player:${player.id}`}>
       <div className="ct-player-head">
         <i className="ct-seat" style={{ background: color }} />
         <strong>{player.name}{me && <small>你</small>}{bot && <small className="ct-bot-tag">人机</small>}{auto && <small className="ct-auto-tag">托管</small>}{!online && !bot && <small>离线</small>}</strong>
@@ -464,7 +534,7 @@ function PlayerRow({ game, player, me, active, color, online, bot, auto }: { gam
 
 function OverallPiles({ game, myId, nameOf, seatColor }: { game: GameState; myId: string; nameOf: (id: string) => string; seatColor: (id: string) => string }) {
   return (
-    <section className="ct-panel ct-piles">
+    <section className="ct-panel ct-piles" data-tutorial="piles">
       <h3>终局牌堆 <small>按放下先后，最早的在左</small></h3>
       {(["winner", "loser"] as const).map((pile) => {
         const cards = pile === "winner" ? game.winnerPile : game.loserPile;
@@ -544,7 +614,7 @@ function PayoutTable({ result, nameOf }: { result: LegResult; nameOf: (id: strin
 
 // ---------- 终局 ----------
 
-function FinalDialog({ game, room, myId, nameOf, spectating, onRematch, onLeave }: {
+function FinalDialog({ game, room, myId, nameOf, spectating, onRematch, onLeave, actions }: {
   game: GameState;
   room: LobbyRoomSnapshot;
   myId: string;
@@ -552,6 +622,8 @@ function FinalDialog({ game, room, myId, nameOf, spectating, onRematch, onLeave 
   spectating: boolean;
   onRematch: (accept: boolean) => void;
   onLeave: () => void;
+  /** 练习局：替代「再来一局」的按钮。 */
+  actions?: ReactNode;
 }) {
   const result = game.finalResult!;
   const lastLeg = game.legResults.at(-1);
@@ -600,6 +672,11 @@ function FinalDialog({ game, room, myId, nameOf, spectating, onRematch, onLeave 
             <div className="gm-panel-actions">
               <button className="quiet-button" type="button" onClick={onLeave}>离开观战</button>
             </div>
+          </div>
+        ) : actions ? (
+          <div className="ct-rematch">
+            <span>练习局结束</span>
+            <div className="gm-panel-actions">{actions}</div>
           </div>
         ) : room.rematch && (
           <div className="ct-rematch">

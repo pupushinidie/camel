@@ -380,6 +380,7 @@ function Track3D(props: Track3DProps) {
                 key={`tile-${pos}`}
                 className={classes.join(" ")}
                 data-cell={pos}
+                data-tutorial={`cell:${pos}`}
                 style={{ left, top, width: side, height: side, transform: `translateZ(${px(TILE_LIFT)}px)`, backgroundImage: `url(${groundArt.tile})` }}
               >
                 <span className="ct-cell-number">{pos}</span>
@@ -519,6 +520,7 @@ function Track3D(props: Track3DProps) {
                       className={["ct-camel", moving ? "walking" : "", walkSheet ? "animated" : ""].join(" ")}
                       style={{ ...(sprite.filter ? { filter: sprite.filter } : {}), ...look }}
                       aria-label={`${CAMEL_NAMES[camel]}骆驼，第 ${displayCell(pos)} 格`}
+                      data-tutorial={`camel:${camel}`}
                     />
                   </div>
                 </div>
