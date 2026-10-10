@@ -28,6 +28,15 @@ npm run typecheck
 
 强度（`~/projects/qa-reports/tools/bots/sim-camel.ts`，见交接报告）和耗时：每步平均约 8 ms。
 
+## 新手教程
+
+站内统一做法（参考欲罢不能）：首页和等候房间有「新手教程」入口（第一次来是邀请卡，学过只剩小按钮；地址带 `?tutorial` 直接打开）。教程不连服务器，在浏览器里直接跑规则引擎，牌桌就是真正的 GameBoard，咕噜嘎的对话框叠在上面。
+
+- 剧本 `packages/game/src/tutorial.ts`：固定开局摆法（红叠在黄上、紫叠在蓝上）和 5 次固定掷骰，你 + 咕噜一号 + 咕噜二号三人局，18 步教目标、名次、掷骰、叠罗汉一起走、金字塔票、疯骆驼、终局卡看不到、赛段下注、观众板、赛段结算、押总冠军、终局。行动要「先选再确定」，do 步骤用 `then` 按 GameBoard 报上来的选择（`onSelection`）把高亮从下注票挪到「确定」。单测 `tutorial.test.ts`。
+- 网页：共用教练层 `apps/web/src/tutorial/`（从 cantstop 复制，不改逻辑）、`TutorialMode.tsx`、`tutorialGame.ts`（「提示」的说法和「第一次」小贴士）。锚点是 `data-tutorial`：`track`、`ranking`、`roll`、`confirm`、`players`、`player:<座位>`、`piles`、`cell:<格>`、`camel:<颜色>`、`bet:<颜色>`、`spectator:cheer|boo`、`finish:<颜色>`、`pile:winner|loser`、`partner:<座位>`、`hint`、`add-bot`、`cancel-auto`。
+- 「提示」只在练习局、或者一个人加人机开的房间里出现（键盘 H），说法来自 `botAdvice` 的理由。剧本进行中不弹赛段结算框（咕噜嘎自己讲）。
+- 走查脚本：`~/projects/qa-reports/tools/tut-camel.mjs`（flow / waiting / room，`SHORT=1` 只走到练习局开头）。
+
 ## 目录
 
 | 路径 | 内容 |
