@@ -18,6 +18,8 @@ export {
   timeoutTurn,
 } from "./engine.js";
 export type { NewPlayer } from "./engine.js";
+export { botAdvice, botCommand, CAMEL_LABEL } from "./bot.js";
+export type { BotAdvice } from "./bot.js";
 export { createRng } from "./rng.js";
 export type { Rng } from "./rng.js";
 export { CAPACITY_OPTIONS, DEFAULT_ROOM_ACCESS } from "./roomTypes.js";
