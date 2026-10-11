@@ -5,8 +5,9 @@ import { stepPath } from "./trackGeometry.js";
 
 /** 每走一格的时长（毫秒），和 CSS 里 .ct-anchor 的过渡、跳跃动画一致。 */
 export const STEP_MS = 360;
-const DIE_MS = 900;
-const CHEER_MS = 520;
+/** 骰子从金字塔冒出到骆驼起步、观众板欢呼的时长（game-sfx.ts 的音效也按这条时间线排）。 */
+export const DIE_MS = 900;
+export const CHEER_MS = 520;
 
 export interface Playback {
   readonly stacks: Record<number, CamelId[]>;

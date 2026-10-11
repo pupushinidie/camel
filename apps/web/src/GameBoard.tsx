@@ -20,6 +20,8 @@ import GameRules from "./GameRules.js";
 import { GameRoomMenu, SpectateBar } from "./RoomExtras.js";
 import Track3D, { DIE_NAMES } from "./Track3D.js";
 import { socket } from "./socket.js";
+import { useCountdownSfx, useGameSfx } from "./game-sfx.js";
+import { sfx } from "./gm-sound.js";
 import { usePlayback } from "./usePlayback.js";
 import { Coach, TipToast } from "./tutorial/Coach.js";
 import { useFirstTimeTips } from "./tutorial/tips.js";
@@ -84,8 +86,8 @@ type Mode =
 
 function useCountdown(room: LobbyRoomSnapshot): number | null {
   const [now, setNow] = useState(Date.now());
-  const [anchor, setAnchor] = useState({ at: Date.now(), ms: room.turnRemainingMs });
-  useEffect(() => setAnchor({ at: Date.now(), ms: room.turnRemainingMs }), [room]);
+  // 锚点和 room 在同一次渲染里算好：放在 effect 里的话，换步骤的第一帧会用上一步的剩余时间（倒计时音效会误响一声）
+  const anchor = useMemo(() => ({ at: Date.now(), ms: room.turnRemainingMs }), [room]);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 500);
     return () => window.clearInterval(timer);
@@ -156,6 +158,9 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
     return { bot: seat?.bot === true, auto: seat?.auto === true };
   };
   const autoOn = member?.auto === true && game.phase === "playing";
+  // 动作音效（见 game-sfx.ts）；自己行动的最后 5 秒每秒一声
+  useGameSfx(game, selfId);
+  useCountdownSfx(myTurn && !autoOn, secondsLeft);
 
   const [mode, setMode] = useState<Mode>({ kind: "none" });
   // 换人或状态更新后，未确认的选择作废
@@ -279,7 +284,11 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
           {...(playback.dieFx ? { dieFx: playback.dieFx } : {})}
           {...(playback.dust ? { dust: playback.dust } : {})}
           {...(spectatorCells ? { selectableCells: spectatorCells } : {})}
-          onCellClick={(pos) => mode.kind === "spectator" && setMode({ ...mode, pos })}
+          onCellClick={(pos) => {
+            if (mode.kind !== "spectator") return;
+            sfx.select(true);
+            setMode({ ...mode, pos });
+          }}
           pyramidActive={canAct && mode.kind === "none"}
           onPyramidClick={() => send({ type: "ROLL" })}
           ownerName={nameOf}
@@ -334,6 +343,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
                     disabled={!canAct || left.length === 0}
                     onClick={() => setMode({ kind: "legBet", camel })}
                     data-tutorial={`bet:${camel}`}
+                    data-sfx="select"
                     title={left.length ? `剩 ${left.join("、")}` : "已拿完"}
                     aria-label={`${CAMEL_LABEL[camel]}色下注票${left.length ? `，最上面一张 ${left[0]} 金，剩 ${left.length} 张` : "，已拿完"}`}
                   >
@@ -356,6 +366,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
                   disabled={!canAct}
                   onClick={() => setMode({ kind: "spectator", side })}
                   data-tutorial={`spectator:${side}`}
+                    data-sfx="select"
                 >
                   {side === "cheer" ? "欢呼：再进 1 格" : "嘘：退 1 格"}
                 </button>
@@ -377,6 +388,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
                     disabled={!canAct || !has}
                     onClick={() => setMode({ kind: "overall", camel, ...(mode.kind === "overall" && mode.pile ? { pile: mode.pile } : {}) })}
                     data-tutorial={`finish:${camel}`}
+                    data-sfx="select"
                     aria-label={`${CAMEL_LABEL[camel]}色终局卡${has ? "" : "（已押出）"}`}
                   />
                 );
@@ -391,6 +403,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
                   disabled={!canAct || myCards.length === 0}
                   onClick={() => setMode({ kind: "overall", pile, ...(mode.kind === "overall" && mode.camel ? { camel: mode.camel } : {}) })}
                   data-tutorial={`pile:${pile}`}
+                    data-sfx="select"
                 >
                   {pile === "winner" ? "押冠军" : "押垫底"}
                 </button>
@@ -410,6 +423,7 @@ function GameBoard({ room, busy, error, notice, brand, connection, themeToggle, 
                     disabled={!canAct || Boolean(myPartner) || Boolean(game.partners[player.id])}
                     onClick={() => setMode({ kind: "partner", target: player.id })}
                     data-tutorial={`partner:${player.id}`}
+                    data-sfx="select"
                   >
                     {player.name}{game.partners[player.id] ? "（已结伴）" : ""}
                   </button>

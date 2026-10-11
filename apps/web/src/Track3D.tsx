@@ -5,6 +5,7 @@ import decorSizes from "./decor-sprites.json";
 import { DRAG_THRESHOLD, clamp, distance, midpoint, useElementSize, useTween, useWheel, wheelZoomFactor, type Point } from "./gestures.js";
 import { DECOR } from "./sceneLayout.js";
 import { BOARD_UNITS, MARGIN, camelHeading, cellCenter, cellGrid, displayCell, spriteDirection } from "./trackGeometry.js";
+import { sfx } from "./gm-sound.js";
 
 /**
  * 2.5D 赛道：一块立体的沙盘（CSS 3D）——有厚度的沙地、16 块凸起的石板赛道、带底座的金字塔、
@@ -258,6 +259,8 @@ function Track3D(props: Track3DProps) {
       const target = targetAt(event.clientX, event.clientY);
       if (target.cell !== undefined && selectableCells?.has(target.cell)) onCellClick?.(target.cell);
       else if (target.pyramid && pyramidActive) onPyramidClick?.();
+      // 正在挑观众板的格子，点了不能放的格子：短促的「不行」
+      else if (target.cell !== undefined && selectableCells) sfx.deny();
     }
   }
 

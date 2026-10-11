@@ -466,3 +466,7 @@
 /* 人机和托管的标签 */
 .ct-player-head small.ct-bot-tag { padding: 0 4px; color: #d8e8ff; background: #2a62c0; }
 .ct-player-head small.ct-auto-tag { padding: 0 4px; color: #1a1206; background: var(--gold); }
+
+/* ♪ 声音按钮在新手教程的压暗层（.tut-block，z-index 1000）上面也能点，面板也压在它上面：随时能调音量。 */
+.gm-music-toggle { position: relative; z-index: 1004; }
+body .gm-music-panel { z-index: 1005; }
