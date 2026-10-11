@@ -445,6 +445,9 @@
   .app-shell.ct-game { padding: 0 12px 16px; }
   .ct-topbar { flex-wrap: wrap; gap: 8px; padding: 8px 0; }
   .ct-topbar .brand-name span { display: none; }
+  /* 右边一排按钮放不下时折到下一行，别把「游戏规则」「已连接」挤成竖排 */
+  .ct-topbar-right { flex-wrap: wrap; row-gap: 8px; }
+  .ct-topbar-right > * { flex-shrink: 0; white-space: nowrap; }
   .ct-map-hint { display: none; }
   .ct-ranking { flex-wrap: wrap; right: 12px; }
   .app-shell .capacity-options.capacity-many { grid-template-columns: repeat(3, 1fr); }
