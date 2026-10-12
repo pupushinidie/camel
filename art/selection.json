@@ -25,5 +25,24 @@
   "card-back": "r2/props/card-back-c2.png",
   "partner": "r2/props/partner-c2.png",
   "backdrop-原图": "r2/props/backdrop-c2.png",
-  "hero": "r2/props/hero-c1.png"
+  "hero": "r2/props/hero-c1.png",
+  "bg": {
+    "_说明": "全屏匹配背景图（512x288，day/night），候选在 art/out/bg/",
+    "day": {
+      "file": "apps/web/public/art/bg/day.png",
+      "source": "art/out/bg/day-s1201.png",
+      "size": [
+        512,
+        288
+      ]
+    },
+    "night": {
+      "file": "apps/web/public/art/bg/night.png",
+      "source": "art/out/bg/night-s1202.png",
+      "size": [
+        512,
+        288
+      ]
+    }
+  }
 }
