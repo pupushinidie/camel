@@ -4,3 +4,9 @@
  */
 :root[data-theme="day"] { color-scheme: light; }
 :root[data-theme="day"] .app-shell * { scrollbar-color: #c4b090 var(--bg); }
+
+/* 全屏背景：白天版罩色变浅 */
+:root[data-theme="day"] .ct-page { background: #efe8dc; }
+:root[data-theme="day"] .ct-page-veil { background: #ffffff; opacity: 0.25; }
+:root[data-theme="day"] .ct-page-art--day { display: block; }
+:root[data-theme="day"] .ct-page-art--night { display: none; }

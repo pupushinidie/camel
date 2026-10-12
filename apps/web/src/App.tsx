@@ -297,7 +297,8 @@ function App() {
 
   if (room) {
     return (
-      <main className="app-shell">
+      <main className="app-shell ct-room">
+        <CtBackdrop />
         <header className="topbar">
           <Brand />
           <div className="topbar-right">
@@ -333,7 +334,8 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className="app-shell ct-home">
+      <CtBackdrop />
       <header className="topbar">
         <Brand />
         <div className="topbar-right">
@@ -469,6 +471,18 @@ function App() {
       <OnlineRooms rooms={lobbyRooms} connected={connected} busy={busy} onJoin={joinListed} />
       <footer className="page-footer">押对的是眼光，押错的是沙子。</footer>
     </main>
+  );
+}
+
+/** 全屏背景：把对局场景铺满窗口（16:9 居中裁切），上面盖一层罩色让面板更突出。首页和等候房间放在 <main> 的第一个子元素。 */
+function CtBackdrop() {
+  const base = import.meta.env.BASE_URL;
+  return (
+    <div className="ct-page" aria-hidden="true">
+      <div className="ct-page-art ct-page-art--day" style={{ backgroundImage: `url(${base}art/bg/day.png)` }} />
+      <div className="ct-page-art ct-page-art--night" style={{ backgroundImage: `url(${base}art/bg/night.png)` }} />
+      <div className="ct-page-veil" />
+    </div>
   );
 }
 

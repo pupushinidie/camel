@@ -470,3 +470,19 @@
 /* ♪ 声音按钮在新手教程的压暗层（.tut-block，z-index 1000）上面也能点，面板也压在它上面：随时能调音量。 */
 .gm-music-toggle { position: relative; z-index: 1004; }
 body .gm-music-panel { z-index: 1005; }
+
+/* ---------- 全屏背景：首页、等候房间的场景铺满窗口（用 ct-page，避开牌桌 3D 里的 .ct-backdrop / .ct-scene） ---------- */
+.ct-page { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: #140e08; }
+.ct-page-art {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100vw, calc(100vh * 16 / 9));
+  height: max(100vh, calc(100vw * 9 / 16));
+  transform: translate(-50%, -50%);
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+}
+.ct-page-art--day { display: none; }
+.ct-page-veil { position: absolute; inset: 0; background: #0a0704; opacity: 0.4; }
+.app-shell.ct-home > :not(.ct-page):not(.gm-modal-backdrop), .app-shell.ct-room > :not(.ct-page):not(.gm-modal-backdrop) { position: relative; z-index: 1; }
